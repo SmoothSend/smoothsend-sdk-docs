@@ -5,10 +5,10 @@ Complete examples showcasing SmoothSend SDK integration in various scenarios.
 ## Example dApps
 
 ### 1. Token Sender
-A simple interface for sending tokens across chains without gas.
+A simple interface for sending tokens on Avalanche without gas.
 
 **Features:**
-- Multi-chain support (Avalanche & Aptos)
+- Avalanche support with dynamic configuration
 - Real-time fee calculation
 - Transaction status tracking
 - Wallet integration
@@ -37,16 +37,16 @@ Stake tokens and earn rewards without gas fees.
 
 **[View Source](#multi-chain-balance-display-vuejs)** | **[Live Demo](https://farm.smoothsend.xyz)**
 
-### 4. Cross-Chain Bridge
-Bridge tokens between Avalanche and Aptos.
+### 4. Multi-Chain Wallet
+Unified wallet interface for multiple chains.
 
 **Features:**
-- Cross-chain transfers
-- Gasless transactions on both sides
-- Real-time bridge status
-- Automatic route optimization
+- Single interface for multiple chains
+- Dynamic chain configuration
+- Real-time balance updates
+- Transaction history
 
-**[View Source](#transfer-hook-react)** | **[Live Demo](https://bridge.smoothsend.xyz)**
+**[View Source](#transfer-hook-react)** | **[Live Demo](https://wallet.smoothsend.xyz)**
 
 ### 5. Social Payments
 Send payments via social handles and QR codes.
@@ -91,7 +91,7 @@ npm run dev
 
 ```jsx
 import React, { useState } from 'react';
-import { SmoothSendSDK } from '@smoothsend/sdk';
+import { SmoothSendSDK, getTokenDecimals } from '@smoothsend/sdk';
 import { ethers } from 'ethers';
 
 const TransferComponent = () => {
@@ -105,11 +105,14 @@ const TransferComponent = () => {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
+      // Get proper decimals for USDC
+      const usdcDecimals = getTokenDecimals('USDC');
+      
       const result = await sdk.transfer({
         from: await signer.getAddress(),
         to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
         token: 'USDC',
-        amount: ethers.parseUnits('10', 6).toString(),
+        amount: ethers.parseUnits('10', usdcDecimals).toString(),
         chain: 'avalanche'
       }, signer);
       
@@ -173,7 +176,7 @@ export default {
   data() {
     return {
       sdk: new SmoothSendSDK(),
-      chains: ['avalanche', 'aptos'],
+      chains: ['avalanche'],
       balances: {},
       loading: {}
     };
@@ -357,7 +360,7 @@ describe('SmoothSend SDK Integration', () => {
   });
 
   test('should initialize with supported chains', () => {
-    expect(sdk.getSupportedChains()).toEqual(['avalanche', 'aptos']);
+    expect(sdk.getSupportedChains()).toEqual(['avalanche']);
   });
 
   test('should validate addresses correctly', () => {
@@ -406,24 +409,25 @@ describe('Token Transfer Flow', () => {
 
 ```javascript
 // Import only what you need
-import { SmoothSendSDK } from '@smoothsend/sdk/core';
-import { AvalancheAdapter } from '@smoothsend/sdk/adapters/avalanche';
+import { SmoothSendSDK, getChainConfig, getTokenDecimals } from '@smoothsend/sdk';
 
-// Custom SDK with only Avalanche support
+// SDK automatically includes Avalanche support
 const sdk = new SmoothSendSDK();
-// This automatically includes all adapters, but you can optimize further
+
+// Use configuration utilities
+const chainConfig = getChainConfig('avalanche');
+const tokenDecimals = getTokenDecimals('USDC');
 ```
 
 ### Lazy Loading
 
 ```javascript
-const LazyAptosTransfer = React.lazy(() => import('./AptosTransfer'));
 const LazyAvalancheTransfer = React.lazy(() => import('./AvalancheTransfer'));
 
 const TransferComponent = ({ chain }) => {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      {chain === 'aptos' ? <LazyAptosTransfer /> : <LazyAvalancheTransfer />}
+      {chain === 'avalanche' && <LazyAvalancheTransfer />}
     </Suspense>
   );
 };

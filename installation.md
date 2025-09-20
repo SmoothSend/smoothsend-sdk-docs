@@ -31,7 +31,6 @@ For browser-only usage without a build system:
 - **TypeScript**: 5.0+ (for TypeScript projects)
 - **Dependencies**: 
   - `ethers@^6.8.0` (for Avalanche - included as dependency)
-  - `@aptos-labs/ts-sdk@^1.15.0` (for Aptos - included as dependency)
   - `axios@^1.6.0` (HTTP client - included as dependency)
 
 ## Framework Integration
@@ -112,22 +111,27 @@ console.log('Avalanche config:', sdk.getChainConfig('avalanche'));
 ### Development
 
 ```javascript
+import { SmoothSendSDK, chainConfigService } from '@smoothsend/sdk';
+
 const sdk = new SmoothSendSDK({
+  timeout: 30000,
+  retries: 3,
   customChainConfigs: {
     avalanche: {
-      relayerUrl: 'https://avax-testnet.smoothsend.xyz'
-    },
-    aptos: {
-      relayerUrl: 'https://testnet.smoothsend.xyz'
+      relayerUrl: 'https://smoothsendevm.onrender.com'
     }
   }
 });
+
+// Optional: Fetch dynamic configurations
+const dynamicConfigs = await chainConfigService.getAllChainConfigs();
+console.log('Available chains:', Object.keys(dynamicConfigs));
 ```
 
 ### Production
 
 ```javascript
-const sdk = new SmoothSendSDK(); // Uses mainnet by default
+const sdk = new SmoothSendSDK(); // Uses testnet by default
 ```
 
 ## Troubleshooting

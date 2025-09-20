@@ -2,7 +2,7 @@
 
 ## SmoothSendSDK Class
 
-The main SDK class that provides a unified interface for gasless transactions across multiple chains.
+The main SDK class that provides a unified interface for gasless transactions. Currently supports Avalanche with architecture ready for additional chains.
 
 ### Constructor
 
@@ -30,9 +30,6 @@ const sdk = new SmoothSendSDK({
   customChainConfigs: {
     avalanche: {
       relayerUrl: 'https://custom-avax-relayer.com'
-    },
-    aptos: {
-      relayerUrl: 'https://custom-aptos-relayer.com'
     }
   }
 });
@@ -53,9 +50,9 @@ async getQuote(request: TransferRequest): Promise<TransferQuote>
 interface TransferRequest {
   from: string;           // Sender address
   to: string;             // Recipient address  
-  token: string;          // Token symbol (e.g., 'USDC', 'APT')
-  amount: string;         // Amount in smallest unit (wei, octas)
-  chain: SupportedChain;  // 'avalanche' | 'aptos'
+  token: string;          // Token symbol (e.g., 'USDC', 'AVAX')
+  amount: string;         // Amount in smallest unit (wei for EVM chains)
+  chain: SupportedChain;  // 'avalanche'
 }
 ```
 
@@ -96,7 +93,7 @@ async transfer(request: TransferRequest, signer: any): Promise<TransferResult>
 
 **Parameters:**
 - `request`: Transfer request object
-- `signer`: Wallet signer (ethers.Signer for Avalanche, Ed25519PrivateKey for Aptos)
+- `signer`: Wallet signer (ethers.Signer for Avalanche)
 
 **Returns:**
 ```typescript
@@ -113,36 +110,24 @@ interface TransferResult {
 **Example (Avalanche):**
 ```typescript
 import { ethers } from 'ethers';
+import { getTokenDecimals } from '@smoothsend/sdk';
 
 const provider = new ethers.BrowserProvider(window.ethereum);
 const signer = await provider.getSigner();
+
+// Get proper decimals for the token
+const usdcDecimals = getTokenDecimals('USDC');
 
 const result = await sdk.transfer({
   from: await signer.getAddress(),
   to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
   token: 'USDC',
-  amount: ethers.parseUnits('10', 6).toString(),
+  amount: ethers.parseUnits('10', usdcDecimals).toString(),
   chain: 'avalanche'
 }, signer);
 
 console.log('Transaction:', result.txHash);
 console.log('Explorer:', result.explorerUrl);
-```
-
-**Example (Aptos):**
-```typescript
-import { Ed25519PrivateKey, Account } from '@aptos-labs/ts-sdk';
-
-const privateKey = new Ed25519PrivateKey('0x...');
-const account = Account.fromPrivateKey({ privateKey });
-
-const result = await sdk.transfer({
-  from: account.accountAddress.toString(),
-  to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
-  token: 'APT',
-  amount: '100000000', // 1 APT (8 decimals)
-  chain: 'aptos'
-}, privateKey);
 ```
 
 ### batchTransfer()
@@ -252,7 +237,7 @@ Get list of supported chains.
 getSupportedChains(): SupportedChain[]
 ```
 
-**Returns:** `['avalanche', 'aptos']`
+**Returns:** `['avalanche']`
 
 ### getChainConfig()
 
@@ -356,7 +341,7 @@ static getSupportedChains(): SupportedChain[]
 Get chain configuration without instantiating the SDK.
 
 ```typescript
-static getChainConfig(chain: SupportedChain, testnet?: boolean): ChainConfig
+static getChainConfig(chain: SupportedChain): ChainConfig
 ```
 
 ### SmoothSendSDK.getAllChainConfigs()
@@ -364,7 +349,76 @@ static getChainConfig(chain: SupportedChain, testnet?: boolean): ChainConfig
 Get all chain configurations.
 
 ```typescript
-static getAllChainConfigs(testnet?: boolean): Record<SupportedChain, ChainConfig>
+static getAllChainConfigs(): Record<SupportedChain, ChainConfig>
+```
+
+## Configuration Utilities
+
+### getChainConfig()
+
+Get static chain configuration from the SDK.
+
+```typescript
+import { getChainConfig, getAllChainConfigs } from '@smoothsend/sdk';
+
+const avalancheConfig = getChainConfig('avalanche');
+const allConfigs = getAllChainConfigs();
+```
+
+### getTokenDecimals()
+
+Get token decimals for proper formatting.
+
+```typescript
+import { getTokenDecimals } from '@smoothsend/sdk';
+
+const usdcDecimals = getTokenDecimals('USDC'); // 6
+const avaxDecimals = getTokenDecimals('AVAX'); // 18
+```
+
+## Dynamic Configuration Service
+
+### chainConfigService
+
+Service for fetching dynamic chain configurations from relayers.
+
+```typescript
+import { chainConfigService } from '@smoothsend/sdk';
+
+// Fetch dynamic configurations from all relayers
+const dynamicConfigs = await chainConfigService.getAllChainConfigs();
+
+// Get specific chain config with fallback
+const avalancheConfig = await chainConfigService.getChainConfig('avalanche');
+
+// Clear cache
+chainConfigService.clearCache();
+```
+
+### ChainConfigService Methods
+
+#### fetchChainConfig()
+
+Fetch chain configurations from a specific relayer.
+
+```typescript
+async fetchChainConfig(relayerUrl: string, chainName?: string): Promise<DynamicChainConfig[]>
+```
+
+#### getChainConfig()
+
+Get configuration for a specific chain with fallback.
+
+```typescript
+async getChainConfig(chain: SupportedChain, fallbackConfig?: ChainConfig): Promise<DynamicChainConfig>
+```
+
+#### getAllChainConfigs()
+
+Get all available chain configurations from all relayers.
+
+```typescript
+async getAllChainConfigs(fallbackConfigs?: Record<SupportedChain, ChainConfig>): Promise<Record<string, DynamicChainConfig>>
 ```
 
 ## Error Handling

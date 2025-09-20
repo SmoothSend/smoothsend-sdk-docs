@@ -11,13 +11,14 @@ npm install @smoothsend/sdk
 ## 2. Initialize SDK
 
 ```typescript
-import { SmoothSendSDK } from '@smoothsend/sdk';
+import { SmoothSendSDK, getChainConfig } from '@smoothsend/sdk';
 
 const sdk = new SmoothSendSDK({
   timeout: 30000,
   retries: 3
 });
-console.log('Supported chains:', sdk.getSupportedChains()); // ['avalanche', 'aptos']
+console.log('Supported chains:', sdk.getSupportedChains()); // ['avalanche']
+console.log('Avalanche config:', getChainConfig('avalanche'));
 ```
 
 ## 3. Your First Transfer
@@ -26,42 +27,26 @@ console.log('Supported chains:', sdk.getSupportedChains()); // ['avalanche', 'ap
 
 ```javascript
 import { ethers } from 'ethers';
+import { getTokenDecimals } from '@smoothsend/sdk';
 
 // Connect wallet
 const provider = new ethers.BrowserProvider(window.ethereum);
 const signer = await provider.getSigner();
+
+// Get proper decimals for USDC
+const usdcDecimals = getTokenDecimals('USDC');
 
 // Execute gasless transfer
 const result = await sdk.transfer({
   from: await signer.getAddress(),
   to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
   token: 'USDC',
-  amount: ethers.parseUnits('10', 6).toString(), // 10 USDC
+  amount: ethers.parseUnits('10', usdcDecimals).toString(), // 10 USDC
   chain: 'avalanche'
 }, signer);
 
 console.log('Success! TX:', result.txHash);
-```
-
-### Aptos Example
-
-```javascript
-import { Ed25519PrivateKey, Account } from '@aptos-labs/ts-sdk';
-
-// Create account
-const privateKey = new Ed25519PrivateKey('0x...');
-const account = Account.fromPrivateKey({ privateKey });
-
-// Execute gasless transfer
-const result = await sdk.transfer({
-  from: account.accountAddress.toString(),
-  to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
-  token: 'APT',
-  amount: '100000000', // 1 APT (8 decimals)
-  chain: 'aptos'
-}, privateKey);
-
-console.log('Success! TX:', result.txHash);
+console.log('Explorer:', result.explorerUrl);
 ```
 
 ## 4. Add Event Monitoring
@@ -107,7 +92,7 @@ Here's a complete React component that demonstrates the full flow:
 
 ```jsx
 import React, { useState } from 'react';
-import { SmoothSendSDK } from '@smoothsend/sdk';
+import { SmoothSendSDK, getTokenDecimals } from '@smoothsend/sdk';
 import { ethers } from 'ethers';
 
 const GaslessTransfer = () => {
@@ -143,12 +128,15 @@ const GaslessTransfer = () => {
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
       
+      // Get proper decimals and format amount
+      const usdcDecimals = getTokenDecimals('USDC');
+      
       // Execute transfer
       const transferResult = await sdk.transfer({
         from: await signer.getAddress(),
         to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
         token: 'USDC',
-        amount: ethers.parseUnits('1', 6).toString(), // 1 USDC
+        amount: ethers.parseUnits('1', usdcDecimals).toString(), // 1 USDC
         chain: 'avalanche'
       }, signer);
       
@@ -207,7 +195,7 @@ export default GaslessTransfer;
 ## Next Steps
 
 - 📖 **[Read the full API documentation](./api/)**
-- 🔗 **[Explore chain-specific guides](./chains/avalanche)**
+- 🔗 **[Explore Avalanche integration guide](./chains/avalanche)**
 - 💡 **[Check out more examples](./examples/)**
 - 🛠️ **[View integration patterns](./examples/)**
 

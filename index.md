@@ -1,6 +1,6 @@
 # SmoothSend SDK Documentation
 
-A powerful multi-chain SDK for seamless gasless transaction integration in your dApps. Support for Avalanche and Aptos blockchains with unified developer experience.
+A powerful multi-chain SDK for seamless gasless transaction integration in your dApps. Currently supporting Avalanche with a unified developer experience and dynamic configuration system.
 
 ## Quick Start
 
@@ -41,20 +41,20 @@ SmoothSend SDK enables **gasless transactions** across multiple blockchains, all
 
 ### Key Features
 
-- 🚀 **Multi-Chain Support**: Seamlessly work with Avalanche and Aptos
+- 🚀 **Multi-Chain Ready**: Currently supporting Avalanche, with architecture ready for additional chains
 - 💸 **Gasless Transactions**: Users pay fees in tokens, not native gas
 - 🛡️ **Type-Safe**: Full TypeScript support with comprehensive type definitions
 - 📊 **Event System**: Real-time transaction status updates
-- 🔄 **Unified API**: Same interface across all supported chains
+- 🔄 **Unified API**: Consistent interface across all supported chains
 - 📦 **Batch Transfers**: Execute multiple transfers in a single transaction (Avalanche)
 - 🔌 **Wallet Integration**: Easy integration with popular wallets
+- ⚡ **Dynamic Configuration**: Chain configurations fetched dynamically from relayers
 
 ## Supported Chains
 
 | Chain | Network | Status | Features |
 |-------|---------|--------|----------|
-| Avalanche | Fuji | ✅ Active | EIP-712 signatures, Batch transfers |
-| Aptos | Testnet | ✅ Active | Native signatures, USDC fees |
+| Avalanche | Fuji Testnet | ✅ Active | EIP-712 signatures, Batch transfers, Dynamic config |
 
 ## Architecture Overview
 
@@ -62,11 +62,10 @@ SmoothSend SDK enables **gasless transactions** across multiple blockchains, all
 graph TD
     A[Your dApp] --> B[SmoothSend SDK]
     B --> C[Avalanche Adapter]
-    B --> D[Aptos Adapter]
-    C --> E[avax.smoothsend.xyz]
-    D --> F[smoothsend.xyz]
-    E --> G[Avalanche Network]
-    F --> H[Aptos Network]
+    B --> D[Chain Config Service]
+    C --> E[smoothsendevm.onrender.com]
+    D --> F[Dynamic Config Fetching]
+    E --> G[Avalanche Fuji Network]
 ```
 
 ## Next Steps

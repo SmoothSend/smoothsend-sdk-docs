@@ -2,14 +2,13 @@
 
 ## Overview
 
-The Avalanche adapter enables gasless transactions on Avalanche C-Chain using EIP-712 signatures and permit-based token approvals.
+The Avalanche adapter enables gasless transactions on Avalanche C-Chain using EIP-712 signatures and permit-based token approvals. Currently supports Fuji Testnet with dynamic configuration fetching.
 
 ## Supported Networks
 
 | Network | Chain ID | Relayer URL |
 |---------|----------|-------------|
-| Mainnet | 43114 | https://avax.smoothsend.xyz |
-| Fuji Testnet | 43113 | https://avax-testnet.smoothsend.xyz |
+| Fuji Testnet | 43113 | https://smoothsendevm.onrender.com |
 
 ## Supported Tokens
 
@@ -29,19 +28,19 @@ npm install ethers @smoothsend/sdk
 ### Basic Configuration
 
 ```typescript
-import { SmoothSendSDK } from '@smoothsend/sdk';
+import { SmoothSendSDK, getChainConfig, chainConfigService } from '@smoothsend/sdk';
 import { ethers } from 'ethers';
 
+// Initialize SDK (uses testnet by default)
 const sdk = new SmoothSendSDK();
 
-// For testnet
-const testnetSdk = new SmoothSendSDK({
-  customChainConfigs: {
-    avalanche: {
-      relayerUrl: 'https://avax-testnet.smoothsend.xyz'
-    }
-  }
-});
+// Get chain configuration
+const avalancheConfig = getChainConfig('avalanche');
+console.log('Relayer URL:', avalancheConfig.relayerUrl);
+
+// Optional: Fetch dynamic configurations
+const dynamicConfigs = await chainConfigService.getAllChainConfigs();
+console.log('Available chains:', Object.keys(dynamicConfigs));
 ```
 
 ## Wallet Integration
@@ -64,6 +63,9 @@ const result = await sdk.transfer({
   amount: ethers.parseUnits('10', 6).toString(),
   chain: 'avalanche'
 }, signer);
+
+console.log('Transfer successful:', result.txHash);
+console.log('Explorer URL:', result.explorerUrl);
 ```
 
 ### WalletConnect Integration
@@ -74,7 +76,7 @@ import { ethers } from 'ethers';
 
 const provider = await WalletConnectProvider.init({
   projectId: 'your-project-id',
-  chains: [43114], // Avalanche mainnet
+  chains: [43113], // Avalanche Fuji testnet
   showQrModal: true
 });
 
@@ -344,7 +346,7 @@ const TESTNET_TOKENS = {
 3. **Handle user rejections** gracefully
 4. **Implement proper error handling** for network issues
 5. **Use event listeners** for better UX
-6. **Test on Fuji** before mainnet deployment
+6. **Test on Fuji testnet** for development
 7. **Implement retry logic** for network resilience
 
 ## Integration Checklist
@@ -356,4 +358,4 @@ const TESTNET_TOKENS = {
 - [ ] Test on Fuji testnet
 - [ ] Add event monitoring
 - [ ] Implement balance checking
-- [ ] Deploy to mainnet
+- [ ] Ready for testnet usage

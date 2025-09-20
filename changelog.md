@@ -5,6 +5,99 @@ All notable changes to the SmoothSend SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-beta.4] - 2024-12-21
+
+### 🔄 Changed
+- **BREAKING**: Removed Aptos support - SDK now focuses on Avalanche only
+- **BREAKING**: Removed mainnet configurations - SDK now uses testnet by default
+- **BREAKING**: Updated chain configuration API - removed testnet parameters from static methods
+- Simplified chain configuration to use only testnet (Fuji) for Avalanche
+- Updated all documentation to reflect current SDK capabilities
+
+### ✨ Added
+- **Dynamic Configuration Service**: `chainConfigService` for fetching configurations from relayers
+- **Enhanced Configuration Utilities**: `getTokenDecimals()` and improved chain config methods
+- **Intelligent Caching**: Chain configuration caching with TTL for optimal performance
+- **Fallback Configuration**: Graceful fallback to static configs when dynamic fetch fails
+- **Configuration Validation**: Better validation and error handling for chain configurations
+
+### 🗑️ Removed
+- Aptos adapter and all Aptos-related functionality
+- Mainnet chain configurations (43114 for Avalanche, chain ID 1 for Aptos)
+- `SUPPORTED_TOKENS_BY_CHAIN` export (replaced with dynamic fetching)
+- `getSupportedTokens()` function (now handled by dynamic service)
+- Testnet parameters from static configuration methods
+
+### 🔧 Fixed
+- Chain configuration inconsistencies between static and dynamic configs
+- Hardcoded "fuji" references in Avalanche adapter (now dynamic based on chainId)
+- Build errors from missing exports after configuration changes
+- Documentation inconsistencies across all files
+
+### 📚 Documentation
+- Complete rewrite of all documentation to reflect current SDK state
+- Updated API reference with new configuration utilities
+- Revised examples to use only Avalanche testnet
+- Updated installation and quick-start guides
+- Comprehensive changelog with migration guidance
+
+### 🏗️ Architecture
+- **Single Chain Focus**: Streamlined architecture for Avalanche-only support
+- **Dynamic Configuration**: Ready for additional chains through relayer integration
+- **Modular Design**: Clean separation between static and dynamic configuration
+- **Future-Ready**: Architecture prepared for easy addition of new chains
+
+### 🔗 Chain Support
+- **Avalanche Fuji Testnet** (Chain ID: 43113) - Active
+- **Relayer URL**: https://smoothsendevm.onrender.com
+
+### 🛠️ Migration Guide
+
+#### For existing users upgrading from beta.1:
+
+1. **Remove Aptos references**:
+```typescript
+// Before
+import { SmoothSendSDK } from '@smoothsend/sdk';
+const sdk = new SmoothSendSDK();
+const chains = sdk.getSupportedChains(); // ['avalanche', 'aptos']
+
+// After
+import { SmoothSendSDK } from '@smoothsend/sdk';
+const sdk = new SmoothSendSDK();
+const chains = sdk.getSupportedChains(); // ['avalanche']
+```
+
+2. **Update configuration usage**:
+```typescript
+// Before
+const config = SmoothSendSDK.getChainConfig('avalanche', true);
+
+// After
+const config = SmoothSendSDK.getChainConfig('avalanche');
+```
+
+3. **Use new configuration utilities**:
+```typescript
+// Before
+const decimals = { USDC: 6, APT: 8 }[token];
+
+// After
+import { getTokenDecimals } from '@smoothsend/sdk';
+const decimals = getTokenDecimals(token);
+```
+
+4. **Update dependencies**:
+```bash
+# Remove Aptos dependency
+npm uninstall @aptos-labs/ts-sdk
+
+# Update SDK
+npm update @smoothsend/sdk
+```
+
+---
+
 ## [1.0.0-beta.1] - 2024-12-20
 
 ### Added
@@ -32,7 +125,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chain Support
 - Avalanche (Fuji Testnet) - Currently active
-- Aptos (Testnet) - Currently active
 
 ### API Endpoints
 - `GET /health` - Health check
@@ -53,7 +145,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Dependencies
 - `ethers@^6.0.0` (peer dependency for Avalanche)
-- `@aptos-labs/ts-sdk@^1.15.0` (for Aptos support)
 - `axios@^1.6.0` (HTTP client)
 
 ---
@@ -94,7 +185,7 @@ If you were using an alpha version of the SDK, please note the following breakin
 npm update @smoothsend/sdk
 
 # Update peer dependencies
-npm install ethers@^6.0.0 @aptos-labs/ts-sdk@^1.15.0
+npm install ethers@^6.0.0
 ```
 
 ---
