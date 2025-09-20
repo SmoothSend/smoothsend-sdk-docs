@@ -13,6 +13,6 @@
     "vue": "^3.3.8"
   },
   "peerDependencies": {
-    "@smoothsend/sdk": "^1.0.0"
+    "@smoothsend/sdk": "^1.0.0-beta.1"
   }
 }
