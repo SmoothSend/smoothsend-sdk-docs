@@ -13,7 +13,7 @@ A simple interface for sending tokens across chains without gas.
 - Transaction status tracking
 - Wallet integration
 
-**[View Source](./token-sender.md)** | **[Live Demo](https://token-sender.smoothsend.xyz)**
+**[View Source](#basic-transfer-component-react)** | **[Live Demo](https://token-sender.smoothsend.xyz)**
 
 ### 2. NFT Marketplace
 Gasless NFT purchases with stablecoin payments.
@@ -24,7 +24,7 @@ Gasless NFT purchases with stablecoin payments.
 - Multi-token payment options
 - Seller dashboard
 
-**[View Source](./nft-marketplace.md)** | **[Live Demo](https://marketplace.smoothsend.xyz)**
+**[View Source](#integration-patterns)** | **[Live Demo](https://marketplace.smoothsend.xyz)**
 
 ### 3. DeFi Yield Farming
 Stake tokens and earn rewards without gas fees.
@@ -35,7 +35,7 @@ Stake tokens and earn rewards without gas fees.
 - LP token farming
 - Emergency withdrawals
 
-**[View Source](./defi-farming.md)** | **[Live Demo](https://farm.smoothsend.xyz)**
+**[View Source](#multi-chain-balance-display-vuejs)** | **[Live Demo](https://farm.smoothsend.xyz)**
 
 ### 4. Cross-Chain Bridge
 Bridge tokens between Avalanche and Aptos.
@@ -46,7 +46,7 @@ Bridge tokens between Avalanche and Aptos.
 - Real-time bridge status
 - Automatic route optimization
 
-**[View Source](./cross-chain-bridge.md)** | **[Live Demo](https://bridge.smoothsend.xyz)**
+**[View Source](#transfer-hook-react)** | **[Live Demo](https://bridge.smoothsend.xyz)**
 
 ### 5. Social Payments
 Send payments via social handles and QR codes.
@@ -57,7 +57,7 @@ Send payments via social handles and QR codes.
 - Bill splitting
 - Payment requests
 
-**[View Source](./social-payments.md)** | **[Live Demo](https://pay.smoothsend.xyz)**
+**[View Source](#event-monitoring-pattern)** | **[Live Demo](https://pay.smoothsend.xyz)**
 
 ## Quick Start Templates
 

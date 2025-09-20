@@ -29,9 +29,10 @@ For browser-only usage without a build system:
 
 - **Node.js**: 16.0.0 or higher
 - **TypeScript**: 5.0+ (for TypeScript projects)
-- **Peer Dependencies**: 
-  - `ethers@^6.0.0` (for Avalanche)
-  - `@aptos-labs/ts-sdk@^1.15.0` (for Aptos)
+- **Dependencies**: 
+  - `ethers@^6.8.0` (for Avalanche - included as dependency)
+  - `@aptos-labs/ts-sdk@^1.15.0` (for Aptos - included as dependency)
+  - `axios@^1.6.0` (HTTP client - included as dependency)
 
 ## Framework Integration
 

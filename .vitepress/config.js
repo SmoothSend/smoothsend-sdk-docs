@@ -67,24 +67,19 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/smoothsend/sdk' },
-      { icon: 'twitter', link: 'https://twitter.com/smoothsend' },
-      { icon: 'discord', link: 'https://discord.gg/smoothsend' }
+      { icon: 'x', link: 'https://x.com/smoothsend' },
+      { icon: 'discord', link: 'https://discord.gg/fF6cdJFWnM' }
     ],
 
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2024 SmoothSend'
+      copyright: 'Copyright © 2025 SmoothSend'
     },
 
     search: {
       provider: 'local'
     },
 
-    editLink: {
-      pattern: 'https://github.com/smoothsend/sdk/edit/main/docs/:path',
-      text: 'Edit this page on GitHub'
-    },
 
     lastUpdated: {
       text: 'Updated at',

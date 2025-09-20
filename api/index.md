@@ -29,7 +29,10 @@ const sdk = new SmoothSendSDK({
   retries: 5,
   customChainConfigs: {
     avalanche: {
-      relayerUrl: 'https://custom-relayer.com'
+      relayerUrl: 'https://custom-avax-relayer.com'
+    },
+    aptos: {
+      relayerUrl: 'https://custom-aptos-relayer.com'
     }
   }
 });
@@ -381,12 +384,17 @@ class SmoothSendError extends Error {
 
 **Common Error Codes:**
 - `QUOTE_ERROR`: Failed to get transfer quote
+- `NONCE_ERROR`: Failed to get user nonce
+- `SIGNATURE_PREP_ERROR`: Failed to prepare signature data
 - `SIGNATURE_ERROR`: Transaction signing failed
 - `EXECUTION_ERROR`: Transfer execution failed
-- `NETWORK_ERROR`: Network/connectivity issues
-- `INVALID_ADDRESS`: Invalid address format
 - `INSUFFICIENT_BALANCE`: Insufficient token balance
+- `INVALID_ADDRESS`: Invalid address format
 - `UNSUPPORTED_CHAIN`: Chain not supported
+- `BATCH_NOT_SUPPORTED`: Batch transfers not supported on this chain
+- `TOKEN_INFO_ERROR`: Failed to get token information
+- `STATUS_ERROR`: Failed to get transaction status
+- `CHAINS_ERROR`: Failed to get supported chains
 
 **Example:**
 ```typescript

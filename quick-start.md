@@ -5,16 +5,19 @@ Get up and running with SmoothSend SDK in under 5 minutes.
 ## 1. Installation
 
 ```bash
-npm install @smoothsend/sdk ethers @aptos-labs/ts-sdk
+npm install @smoothsend/sdk
 ```
 
 ## 2. Initialize SDK
 
-```javascript
+```typescript
 import { SmoothSendSDK } from '@smoothsend/sdk';
 
-const sdk = new SmoothSendSDK();
-console.log('Supported chains:', sdk.getSupportedChains());
+const sdk = new SmoothSendSDK({
+  timeout: 30000,
+  retries: 3
+});
+console.log('Supported chains:', sdk.getSupportedChains()); // ['avalanche', 'aptos']
 ```
 
 ## 3. Your First Transfer
