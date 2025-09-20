@@ -1,0 +1,18 @@
+{
+  "name": "smoothsend-docs",
+  "version": "1.0.0",
+  "description": "SmoothSend SDK Documentation",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "serve": "vitepress serve"
+  },
+  "devDependencies": {
+    "vitepress": "^1.0.0-rc.31",
+    "vue": "^3.3.8"
+  },
+  "peerDependencies": {
+    "@smoothsend/sdk": "^1.0.0"
+  }
+}
