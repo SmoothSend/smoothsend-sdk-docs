@@ -5,6 +5,7 @@ All notable changes to the SmoothSend SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
 ## [1.0.0-beta.4] - 2024-12-21
 
 ### 🔄 Changed
@@ -192,10 +193,9 @@ npm install ethers@^6.0.0
 
 ## Support
 
-- 📧 **Email**: [support@smoothsend.xyz](mailto:support@smoothsend.xyz)
-- 💬 **Discord**: [Join our community](https://discord.gg/fF6cdJFWnM)
-- 🐛 **Issues**: Report bugs and request features
-- 📖 **Documentation**: [Full API reference](./api/)
+- 📧 **Email**: support@smoothsend.xyz
+- 🐛 **Issues**: Report bugs and request features on GitHub
+- 📖 **Documentation**: Full API reference available
 
 ---
 

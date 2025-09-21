@@ -15,10 +15,22 @@ import { SmoothSendSDK, getChainConfig } from '@smoothsend/sdk';
 
 const sdk = new SmoothSendSDK({
   timeout: 30000,
-  retries: 3
+  retries: 3,
+  useDynamicConfig: true,  // Enable dynamic configuration from relayers
+  configCacheTtl: 300000  // 5 minutes cache TTL
 });
-console.log('Supported chains:', sdk.getSupportedChains()); // ['avalanche']
-console.log('Avalanche config:', getChainConfig('avalanche'));
+
+// Check service health
+const health = await sdk.getHealth();
+console.log('Service status:', health.status);
+
+// Get supported chains with full info
+const chains = await sdk.getSupportedChainsInfo();
+console.log('Supported chains:', chains);
+
+// Get supported tokens for a chain
+const tokens = await sdk.getSupportedTokensForChain('avalanche-fuji');
+console.log('Supported tokens:', tokens);
 ```
 
 ## 3. Your First Transfer
@@ -46,6 +58,9 @@ const result = await sdk.transfer({
 }, signer);
 
 console.log('Success! TX:', result.txHash);
+console.log('Block:', result.blockNumber);
+console.log('Fee:', result.fee);
+console.log('Execution Time:', result.executionTime + 'ms');
 console.log('Explorer:', result.explorerUrl);
 ```
 
@@ -69,7 +84,34 @@ sdk.addEventListener((event) => {
 });
 ```
 
-## 5. Error Handling
+## 5. Advanced Features
+
+### Gas Estimation
+
+```javascript
+// Estimate gas cost before executing transfer
+const estimate = await sdk.estimateGas('avalanche-fuji', [transferData]);
+console.log('Estimated gas:', estimate.gasEstimate);
+console.log('Estimated cost:', estimate.estimatedCost);
+```
+
+### Transfer Status Check
+
+```javascript
+// Check if a transfer has been executed
+const status = await sdk.getTransferStatus('avalanche-fuji', txHash);
+console.log('Transfer executed:', status.executed);
+```
+
+### Domain Separator
+
+```javascript
+// Get EIP-712 domain separator for signature verification
+const domain = await sdk.getDomainSeparator('avalanche-fuji');
+console.log('Domain separator:', domain.domainSeparator);
+```
+
+## 6. Error Handling
 
 ```javascript
 try {
@@ -80,6 +122,8 @@ try {
     alert('You need more tokens for this transfer');
   } else if (error.code === 'USER_REJECTED') {
     console.log('User cancelled the transaction');
+  } else if (error.code === 'HEALTH_CHECK_ERROR') {
+    console.log('Service is unavailable');
   } else {
     alert(`Transfer failed: ${error.message}`);
   }
@@ -180,6 +224,8 @@ const GaslessTransfer = () => {
           <h3>✅ Transfer Successful!</h3>
           <p><strong>Transaction:</strong> {result.txHash}</p>
           <p><strong>Block:</strong> {result.blockNumber}</p>
+          <p><strong>Fee:</strong> {result.fee}</p>
+          <p><strong>Execution Time:</strong> {result.executionTime}ms</p>
           <a href={result.explorerUrl} target="_blank" rel="noopener noreferrer">
             View on Explorer →
           </a>
@@ -201,6 +247,6 @@ export default GaslessTransfer;
 
 ## Need Help?
 
-- 💬 **[Join our Discord](https://discord.gg/smoothsend)**
-- 📧 **[Email support](mailto:support@smoothsend.xyz)**
-- 🐛 **[Report issues on GitHub](https://github.com/smoothsend/sdk/issues)**
+- 📧 **Email support**: support@smoothsend.xyz
+- 🐛 **Report issues**: Create an issue on GitHub
+- 📖 **Documentation**: Read the full API reference

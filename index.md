@@ -72,5 +72,5 @@ graph TD
 
 - [Installation Guide](./installation.md)
 - [API Reference](./api/index.md)
-- [Chain Guides](./chains/avalanche)
+- [Avalanche Guide](./chains/avalanche.md)
 - [Examples](./examples/index.md)

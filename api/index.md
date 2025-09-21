@@ -15,10 +15,11 @@ new SmoothSendSDK(config?: SmoothSendConfig)
 
 ```typescript
 interface SmoothSendConfig {
-  apiKey?: string;           // Future: API key for rate limiting
   timeout?: number;          // Request timeout in ms (default: 30000)
   retries?: number;          // Max retries for failed requests (default: 3)
   customChainConfigs?: Partial<Record<SupportedChain, Partial<ChainConfig>>>;
+  useDynamicConfig?: boolean; // Enable fetching config from relayers (default: true)
+  configCacheTtl?: number;   // Cache TTL in milliseconds (default: 5 minutes)
 }
 ```
 
@@ -63,9 +64,18 @@ interface TransferQuote {
   relayerFee: string;     // Fee charged by relayer
   total: string;          // Total amount (amount + fee)
   feePercentage: number;  // Fee as percentage
-  estimatedGas?: string;  // Estimated gas cost
-  deadline?: number;      // Quote expiration timestamp
-  nonce?: string;         // User's current nonce
+  contractAddress: string; // Contract address for the transfer
+}
+
+// OpenAPI Response Type
+interface TransferQuoteResponse extends SuccessResponse {
+  chainName: string;
+  token: string;
+  amount: string;
+  relayerFee: string;
+  total: string;
+  feePercentage: number;
+  contractAddress: string;
 }
 ```
 
@@ -81,6 +91,46 @@ const quote = await sdk.getQuote({
 
 console.log('Fee:', quote.relayerFee);
 console.log('Total cost:', quote.total);
+```
+
+### prepareTransfer()
+
+Prepare EIP-712 signature data for a transfer.
+
+```typescript
+async prepareTransfer(request: TransferRequest, quote: TransferQuote): Promise<SignatureData>
+```
+
+**Parameters:**
+- `request`: Transfer request object
+- `quote`: Transfer quote from getQuote()
+
+**Returns:**
+```typescript
+interface SignatureData {
+  domain: any;           // EIP-712 domain
+  types: any;            // EIP-712 types
+  message: any;          // EIP-712 message
+  primaryType: string;   // Primary type for signing
+}
+
+// OpenAPI Response Type
+interface PrepareSignatureResponse extends SuccessResponse {
+  typedData: any;        // EIP-712 typed data
+  messageHash: string;   // Hash of the message to be signed
+  message: string;       // Human-readable message
+}
+```
+
+**Example:**
+```typescript
+const quote = await sdk.getQuote(request);
+const signatureData = await sdk.prepareTransfer(request, quote);
+const signature = await signer.signTypedData(
+  signatureData.domain,
+  signatureData.types,
+  signatureData.message
+);
 ```
 
 ### transfer()
@@ -100,10 +150,23 @@ async transfer(request: TransferRequest, signer: any): Promise<TransferResult>
 interface TransferResult {
   success: boolean;
   txHash: string;         // Transaction hash
-  blockNumber?: string;   // Block number where tx was mined
+  blockNumber?: number;   // Block number where tx was mined
   gasUsed?: string;       // Gas consumed
   transferId?: string;    // Internal transfer ID
   explorerUrl?: string;   // Blockchain explorer URL
+  fee?: string;           // Actual relayer fee charged
+  executionTime?: number; // Execution time in milliseconds
+}
+
+// OpenAPI Response Type
+interface RelayTransferResponse extends SuccessResponse {
+  transferId: string;
+  txHash: string;
+  blockNumber: number;
+  gasUsed: string;
+  explorerUrl: string;
+  fee: string;
+  executionTime: number;
 }
 ```
 
@@ -227,6 +290,170 @@ Get the status of a transaction.
 async getTransactionStatus(chain: SupportedChain, txHash: string): Promise<any>
 ```
 
+## OpenAPI-Aligned Endpoint Methods
+
+### getHealth()
+
+Check if the relayer service is running and healthy.
+
+```typescript
+async getHealth(): Promise<HealthResponse>
+```
+
+**Returns:**
+```typescript
+interface HealthResponse extends SuccessResponse {
+  status: string;        // 'healthy'
+  timestamp: string;     // ISO timestamp
+  version: string;       // Service version
+}
+```
+
+**Example:**
+```typescript
+const health = await sdk.getHealth();
+console.log('Service status:', health.status);
+console.log('Version:', health.version);
+```
+
+### getSupportedChainsInfo()
+
+Get supported blockchain networks with their configuration details.
+
+```typescript
+async getSupportedChainsInfo(): Promise<ChainInfo[]>
+```
+
+**Returns:**
+```typescript
+interface ChainInfo {
+  name: string;          // Internal chain name
+  displayName: string;   // Human-readable name
+  chainId: number;       // EVM chain ID
+  explorerUrl: string;   // Block explorer URL
+  tokens: string[];      // Supported token symbols
+}
+```
+
+**Example:**
+```typescript
+const chains = await sdk.getSupportedChainsInfo();
+chains.forEach(chain => {
+  console.log(`${chain.displayName} (${chain.name}): ${chain.tokens.join(', ')}`);
+});
+```
+
+### getSupportedTokensForChain()
+
+Get supported tokens for a specific chain.
+
+```typescript
+async getSupportedTokensForChain(chainName: string): Promise<TokenInfo[]>
+```
+
+**Parameters:**
+- `chainName`: Blockchain network name (e.g., 'avalanche-fuji')
+
+**Returns:**
+```typescript
+interface TokenInfo {
+  symbol: string;        // Token symbol (e.g., 'USDC')
+  address: string;       // Token contract address
+  decimals: number;      // Token decimals
+  name: string;          // Token name
+}
+```
+
+**Example:**
+```typescript
+const tokens = await sdk.getSupportedTokensForChain('avalanche-fuji');
+tokens.forEach(token => {
+  console.log(`${token.name} (${token.symbol}): ${token.address}`);
+});
+```
+
+### estimateGas()
+
+Estimate gas cost for single or batch transfers.
+
+```typescript
+async estimateGas(chainName: string, transfers: any[]): Promise<GasEstimateResponse>
+```
+
+**Parameters:**
+- `chainName`: Blockchain network name
+- `transfers`: Array of transfer data objects
+
+**Returns:**
+```typescript
+interface GasEstimateResponse extends SuccessResponse {
+  chainName: string;     // Chain name
+  gasEstimate: string;   // Estimated gas units
+  gasPrice: string;      // Current gas price in wei
+  estimatedCost: string; // Estimated transaction cost in native token wei
+  transferCount: number; // Number of transfers in the batch
+}
+```
+
+**Example:**
+```typescript
+const estimate = await sdk.estimateGas('avalanche-fuji', [transferData]);
+console.log(`Estimated gas: ${estimate.gasEstimate}`);
+console.log(`Estimated cost: ${estimate.estimatedCost} wei`);
+```
+
+### getDomainSeparator()
+
+Get EIP-712 domain separator for a specific chain.
+
+```typescript
+async getDomainSeparator(chainName: string): Promise<DomainSeparatorResponse>
+```
+
+**Parameters:**
+- `chainName`: Blockchain network name
+
+**Returns:**
+```typescript
+interface DomainSeparatorResponse extends SuccessResponse {
+  chainName: string;     // Chain name
+  domainSeparator: string; // EIP-712 domain separator
+}
+```
+
+**Example:**
+```typescript
+const domain = await sdk.getDomainSeparator('avalanche-fuji');
+console.log('Domain separator:', domain.domainSeparator);
+```
+
+### getTransferStatus()
+
+Check if a transfer has been executed on-chain using its hash.
+
+```typescript
+async getTransferStatus(chainName: string, transferHash: string): Promise<TransferStatusResponse>
+```
+
+**Parameters:**
+- `chainName`: Blockchain network name
+- `transferHash`: Transfer hash to check
+
+**Returns:**
+```typescript
+interface TransferStatusResponse extends SuccessResponse {
+  chainName: string;     // Chain name
+  transferHash: string;  // Transfer hash
+  executed: boolean;     // Whether transfer was executed
+}
+```
+
+**Example:**
+```typescript
+const status = await sdk.getTransferStatus('avalanche-fuji', '0x123...');
+console.log('Transfer executed:', status.executed);
+```
+
 ## Chain Management
 
 ### getSupportedChains()
@@ -250,11 +477,13 @@ getChainConfig(chain: SupportedChain): ChainConfig
 **Returns:**
 ```typescript
 interface ChainConfig {
-  name: string;           // Human-readable name
-  chainId: string | number; // Chain identifier
+  name: string;           // Internal chain name (e.g., 'avalanche-fuji')
+  displayName: string;    // Human-readable name
+  chainId: number;        // Chain identifier
   rpcUrl: string;         // RPC endpoint
   relayerUrl: string;     // SmoothSend relayer URL
   explorerUrl: string;    // Block explorer URL
+  tokens: string[];       // Supported token symbols
   nativeCurrency: {
     name: string;
     symbol: string;
@@ -423,9 +652,16 @@ async getAllChainConfigs(fallbackConfigs?: Record<SupportedChain, ChainConfig>):
 
 ## Error Handling
 
-The SDK uses custom error types for better error handling:
+The SDK uses OpenAPI-aligned error responses for consistent error handling:
 
 ```typescript
+interface ErrorResponse {
+  success: false;
+  error: string;           // Error message
+  details?: string[];      // Detailed validation errors
+  requestId?: string;      // Request tracking ID
+}
+
 class SmoothSendError extends Error {
   constructor(
     message: string,
@@ -449,6 +685,10 @@ class SmoothSendError extends Error {
 - `TOKEN_INFO_ERROR`: Failed to get token information
 - `STATUS_ERROR`: Failed to get transaction status
 - `CHAINS_ERROR`: Failed to get supported chains
+- `HEALTH_CHECK_ERROR`: Health check failed
+- `GAS_ESTIMATION_ERROR`: Gas estimation failed
+- `DOMAIN_SEPARATOR_ERROR`: Failed to get domain separator
+- `TRANSFER_STATUS_ERROR`: Failed to get transfer status
 
 **Example:**
 ```typescript

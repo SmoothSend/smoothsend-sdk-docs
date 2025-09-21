@@ -12,10 +12,8 @@ The Avalanche adapter enables gasless transactions on Avalanche C-Chain using EI
 
 ## Supported Tokens
 
-- **USDC**: USD Coin
-- **USDT**: Tether USD  
-- **AVAX**: Native Avalanche (wrapped)
-- **Custom ERC-20**: Any ERC-20 with permit support
+- **USDC**: USD Coin (primary supported token)
+- Additional tokens available through dynamic configuration
 
 ## Setup
 
@@ -311,34 +309,6 @@ const transferWithRetry = async (request, maxRetries = 3) => {
 };
 ```
 
-## Testing
-
-### Testnet Configuration
-
-```typescript
-const testnetSdk = new SmoothSendSDK({
-  customChainConfigs: {
-    avalanche: {
-      name: 'Avalanche Fuji',
-      chainId: 43113,
-      relayerUrl: 'https://avax-testnet.smoothsend.xyz',
-      rpcUrl: 'https://api.avax-test.network/ext/bc/C/rpc',
-      explorerUrl: 'https://testnet.snowtrace.io'
-    }
-  }
-});
-```
-
-### Test Token Addresses (Fuji)
-
-```typescript
-const TESTNET_TOKENS = {
-  USDC: '0x5425890298aed601595a70AB815c96711a31Bc65',
-  USDT: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7',
-  // Add more test tokens as needed
-};
-```
-
 ## Best Practices
 
 1. **Always validate addresses** before transfers
@@ -346,16 +316,4 @@ const TESTNET_TOKENS = {
 3. **Handle user rejections** gracefully
 4. **Implement proper error handling** for network issues
 5. **Use event listeners** for better UX
-6. **Test on Fuji testnet** for development
-7. **Implement retry logic** for network resilience
-
-## Integration Checklist
-
-- [ ] Install required dependencies
-- [ ] Configure wallet connection
-- [ ] Implement transfer flow
-- [ ] Add error handling
-- [ ] Test on Fuji testnet
-- [ ] Add event monitoring
-- [ ] Implement balance checking
-- [ ] Ready for testnet usage
+6. **Implement retry logic** for network resilience

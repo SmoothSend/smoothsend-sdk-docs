@@ -13,7 +13,7 @@ A simple interface for sending tokens on Avalanche without gas.
 - Transaction status tracking
 - Wallet integration
 
-**[View Source](#basic-transfer-component-react)** | **[Live Demo](https://token-sender.smoothsend.xyz)**
+**[View Source](#basic-transfer-component-react)**
 
 ### 2. NFT Marketplace
 Gasless NFT purchases with stablecoin payments.
@@ -24,65 +24,34 @@ Gasless NFT purchases with stablecoin payments.
 - Multi-token payment options
 - Seller dashboard
 
-**[View Source](#integration-patterns)** | **[Live Demo](https://marketplace.smoothsend.xyz)**
-
-### 3. DeFi Yield Farming
-Stake tokens and earn rewards without gas fees.
-
-**Features:**
-- Gasless staking operations
-- Automatic reward compounding
-- LP token farming
-- Emergency withdrawals
-
-**[View Source](#multi-chain-balance-display-vuejs)** | **[Live Demo](https://farm.smoothsend.xyz)**
-
-### 4. Multi-Chain Wallet
-Unified wallet interface for multiple chains.
-
-**Features:**
-- Single interface for multiple chains
-- Dynamic chain configuration
-- Real-time balance updates
-- Transaction history
-
-**[View Source](#transfer-hook-react)** | **[Live Demo](https://wallet.smoothsend.xyz)**
-
-### 5. Social Payments
-Send payments via social handles and QR codes.
-
-**Features:**
-- Send via @username or email
-- QR code payments
-- Bill splitting
-- Payment requests
-
-**[View Source](#event-monitoring-pattern)** | **[Live Demo](https://pay.smoothsend.xyz)**
+**[View Source](#integration-patterns)**
 
 ## Quick Start Templates
+
+Create a new project with SmoothSend SDK integration:
 
 ### React Template
 
 ```bash
-npx create-react-app my-dapp --template smoothsend
+npx create-react-app my-dapp
 cd my-dapp
-npm start
+npm install @smoothsend/sdk ethers
 ```
 
 ### Next.js Template
 
 ```bash
-npx create-next-app my-dapp --example smoothsend
+npx create-next-app my-dapp
 cd my-dapp
-npm run dev
+npm install @smoothsend/sdk ethers
 ```
 
 ### Vue.js Template
 
 ```bash
-npm create vue@latest my-dapp -- --template smoothsend
+npm create vue@latest my-dapp
 cd my-dapp
-npm run dev
+npm install @smoothsend/sdk ethers
 ```
 
 ## Code Snippets
@@ -90,7 +59,7 @@ npm run dev
 ### Basic Transfer Component (React)
 
 ```jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SmoothSendSDK, getTokenDecimals } from '@smoothsend/sdk';
 import { ethers } from 'ethers';
 
@@ -98,6 +67,26 @@ const TransferComponent = () => {
   const [sdk] = useState(new SmoothSendSDK());
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [health, setHealth] = useState(null);
+  const [chains, setChains] = useState([]);
+
+  // Check service health on mount
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const healthStatus = await sdk.getHealth();
+        setHealth(healthStatus);
+        
+        // Get supported chains
+        const supportedChains = await sdk.getSupportedChainsInfo();
+        setChains(supportedChains);
+      } catch (error) {
+        console.error('Health check failed:', error);
+      }
+    };
+    
+    checkHealth();
+  }, [sdk]);
 
   const handleTransfer = async () => {
     setLoading(true);
@@ -126,12 +115,37 @@ const TransferComponent = () => {
 
   return (
     <div>
+      {/* Service Status */}
+      {health && (
+        <div style={{ marginBottom: '16px', padding: '8px', backgroundColor: '#e8f5e8', borderRadius: '4px' }}>
+          <strong>Service Status:</strong> {health.status} (v{health.version})
+        </div>
+      )}
+
+      {/* Supported Chains */}
+      {chains.length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          <strong>Supported Chains:</strong>
+          <ul>
+            {chains.map(chain => (
+              <li key={chain.name}>
+                {chain.displayName} - {chain.tokens.join(', ')}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <button onClick={handleTransfer} disabled={loading}>
         {loading ? 'Sending...' : 'Send 10 USDC'}
       </button>
+      
       {result && (
-        <div>
-          <p>Success! Transaction: {result.txHash}</p>
+        <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#d4edda', borderRadius: '4px' }}>
+          <p><strong>Success!</strong> Transaction: {result.txHash}</p>
+          <p>Block: {result.blockNumber}</p>
+          <p>Fee: {result.fee}</p>
+          <p>Execution Time: {result.executionTime}ms</p>
           <a href={result.explorerUrl} target="_blank" rel="noopener noreferrer">
             View on Explorer
           </a>
@@ -257,6 +271,133 @@ export const useTransfer = () => {
 };
 ```
 
+### OpenAPI-Aligned Service Monitor (React)
+
+```jsx
+import React, { useState, useEffect } from 'react';
+import { SmoothSendSDK } from '@smoothsend/sdk';
+
+const ServiceMonitor = () => {
+  const [sdk] = useState(new SmoothSendSDK());
+  const [health, setHealth] = useState(null);
+  const [chains, setChains] = useState([]);
+  const [tokens, setTokens] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadServiceInfo = async () => {
+      try {
+        // Check service health
+        const healthStatus = await sdk.getHealth();
+        setHealth(healthStatus);
+
+        // Get supported chains
+        const supportedChains = await sdk.getSupportedChainsInfo();
+        setChains(supportedChains);
+
+        // Get tokens for first chain
+        if (supportedChains.length > 0) {
+          const chainTokens = await sdk.getSupportedTokensForChain(supportedChains[0].name);
+          setTokens(chainTokens);
+        }
+      } catch (error) {
+        console.error('Failed to load service info:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadServiceInfo();
+  }, [sdk]);
+
+  const checkTransferStatus = async (txHash) => {
+    try {
+      const status = await sdk.getTransferStatus('avalanche-fuji', txHash);
+      console.log('Transfer executed:', status.executed);
+    } catch (error) {
+      console.error('Status check failed:', error);
+    }
+  };
+
+  const estimateGasCost = async () => {
+    try {
+      const estimate = await sdk.estimateGas('avalanche-fuji', [{
+        from: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d2',
+        to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+        token: '0x5425890298aed601595a70AB815c96711a31Bc65',
+        amount: '1000000',
+        relayerFee: '1000',
+        nonce: '5',
+        deadline: 1705312200,
+        signature: '0x1234567890abcdef...'
+      }]);
+      
+      console.log('Gas estimate:', estimate.gasEstimate);
+      console.log('Estimated cost:', estimate.estimatedCost);
+    } catch (error) {
+      console.error('Gas estimation failed:', error);
+    }
+  };
+
+  if (loading) return <div>Loading service information...</div>;
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <h2>Service Monitor</h2>
+      
+      {/* Health Status */}
+      <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '6px' }}>
+        <h3>Health Status</h3>
+        <p><strong>Status:</strong> {health?.status}</p>
+        <p><strong>Version:</strong> {health?.version}</p>
+        <p><strong>Timestamp:</strong> {health?.timestamp}</p>
+      </div>
+
+      {/* Supported Chains */}
+      <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '6px' }}>
+        <h3>Supported Chains</h3>
+        {chains.map(chain => (
+          <div key={chain.name} style={{ marginBottom: '8px' }}>
+            <strong>{chain.displayName}</strong> ({chain.name})
+            <br />
+            <small>Chain ID: {chain.chainId} | Explorer: {chain.explorerUrl}</small>
+            <br />
+            <small>Tokens: {chain.tokens.join(', ')}</small>
+          </div>
+        ))}
+      </div>
+
+      {/* Supported Tokens */}
+      <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '6px' }}>
+        <h3>Supported Tokens</h3>
+        {tokens.map(token => (
+          <div key={token.symbol} style={{ marginBottom: '8px' }}>
+            <strong>{token.name} ({token.symbol})</strong>
+            <br />
+            <small>Address: {token.address}</small>
+            <br />
+            <small>Decimals: {token.decimals}</small>
+          </div>
+        ))}
+      </div>
+
+      {/* Utility Functions */}
+      <div style={{ padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '6px' }}>
+        <h3>Utility Functions</h3>
+        <button onClick={estimateGasCost} style={{ marginRight: '8px' }}>
+          Estimate Gas Cost
+        </button>
+        <button onClick={() => checkTransferStatus('0x123...')}>
+          Check Transfer Status
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default ServiceMonitor;
+```
+
 ## Integration Patterns
 
 ### Error Handling Pattern
@@ -339,70 +480,6 @@ const transferWithRetry = async (sdk, request, signer, maxRetries = 3) => {
 };
 ```
 
-## Testing Examples
-
-### Jest Test Suite
-
-```javascript
-import { SmoothSendSDK } from '@smoothsend/sdk';
-
-describe('SmoothSend SDK Integration', () => {
-  let sdk;
-
-  beforeEach(() => {
-    sdk = new SmoothSendSDK({
-      customChainConfigs: {
-        avalanche: {
-          relayerUrl: 'https://test-relayer.example.com'
-        }
-      }
-    });
-  });
-
-  test('should initialize with supported chains', () => {
-    expect(sdk.getSupportedChains()).toEqual(['avalanche']);
-  });
-
-  test('should validate addresses correctly', () => {
-    expect(sdk.validateAddress('avalanche', '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d2')).toBe(true);
-    expect(sdk.validateAddress('avalanche', 'invalid-address')).toBe(false);
-  });
-
-  test('should get chain configuration', () => {
-    const config = sdk.getChainConfig('avalanche');
-    expect(config).toHaveProperty('name');
-    expect(config).toHaveProperty('chainId');
-    expect(config).toHaveProperty('relayerUrl');
-  });
-});
-```
-
-### Cypress E2E Tests
-
-```javascript
-describe('Token Transfer Flow', () => {
-  beforeEach(() => {
-    cy.visit('/transfer');
-    cy.connectWallet();
-  });
-
-  it('should complete USDC transfer on Avalanche', () => {
-    cy.get('[data-testid=chain-select]').select('avalanche');
-    cy.get('[data-testid=token-select]').select('USDC');
-    cy.get('[data-testid=recipient-input]').type('0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3');
-    cy.get('[data-testid=amount-input]').type('10');
-    
-    cy.get('[data-testid=transfer-button]').click();
-    
-    cy.get('[data-testid=quote-modal]').should('be.visible');
-    cy.get('[data-testid=confirm-button]').click();
-    
-    cy.get('[data-testid=success-message]').should('contain', 'Transfer completed');
-    cy.get('[data-testid=transaction-hash]').should('exist');
-  });
-});
-```
-
 ## Performance Optimization
 
 ### Bundle Size Optimization
@@ -431,42 +508,6 @@ const TransferComponent = ({ chain }) => {
     </Suspense>
   );
 };
-```
-
-## Deployment Examples
-
-### Vercel Deployment
-
-```json
-{
-  "name": "my-smoothsend-dapp",
-  "version": "1.0.0",
-  "scripts": {
-    "build": "next build",
-    "start": "next start"
-  },
-  "dependencies": {
-    "@smoothsend/sdk": "^1.0.0",
-    "next": "^13.0.0",
-    "react": "^18.0.0"
-  }
-}
-```
-
-### Docker Deployment
-
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY . .
-RUN npm run build
-
-EXPOSE 3000
-CMD ["npm", "start"]
 ```
 
 ---
