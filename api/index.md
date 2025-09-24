@@ -132,6 +132,8 @@ transfer(request: TransferRequest, signer: any): Promise<TransferResult>
   - **Avalanche**: Ethers.js signer instance for EIP-712 signatures
   - **Aptos**: Aptos-compatible signer (e.g., from Petra wallet) for Ed25519 signatures
 
+**Note:** The SDK automatically detects the chain ecosystem and uses the appropriate signing method. No chain-specific logic is required in your application code.
+
 #### Returns
 
 ```typescript
@@ -180,6 +182,8 @@ batchTransfer(request: BatchTransferRequest, signer: any): Promise<TransferResul
 - **Avalanche**: Native batch transfers in a single transaction
 - **Aptos**: Sequential execution (fallback behavior)
 
+**Note:** The SDK uses a unified approach that automatically handles chain-specific signing and transaction formatting.
+
 #### Parameters
 
 ```typescript
@@ -215,30 +219,6 @@ const results = await smoothSend.batchTransfer({
 console.log(`Executed ${results.length} transfers`);
 ```
 
-### executeGaslessWithWallet() (Aptos Only)
-
-Execute a gasless transfer using Aptos wallet integration for enhanced transparency.
-
-```typescript
-executeGaslessWithWallet(request: TransferRequest, signer: any): Promise<TransferResult>
-```
-
-**Aptos-Specific Features:**
-- Users see full transaction details in their wallet
-- Enhanced transparency with wallet confirmation
-- Gas fees paid by relayer
-- Native Aptos transaction signing
-
-#### Example
-
-```typescript
-// Only available for Aptos chains
-if (request.chain === 'aptos-testnet') {
-  const result = await smoothSend.executeGaslessWithWallet(request, aptosSigner);
-  console.log('Gasless wallet transaction:', result.txHash);
-  console.log('Transparency:', result.transparency);
-}
-```
 
 ## Utility Methods
 
