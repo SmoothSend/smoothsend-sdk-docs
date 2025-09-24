@@ -19,14 +19,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/' },
       { text: 'API Reference', link: '/api/' },
-      { text: 'Examples', link: '/examples/' },
-      {
-        text: 'v1.0.0',
-        items: [
-          { text: 'Changelog', link: '/changelog' },
-          { text: 'NPM Package', link: 'https://npmjs.com/package/@smoothsend/sdk' }
-        ]
-      }
+      { text: 'NPM Package', link: 'https://npmjs.com/package/@smoothsend/sdk' }
     ],
 
     sidebar: {
@@ -40,27 +33,10 @@ export default defineConfig({
           ]
         },
         {
-          text: 'Chain Guides',
-          items: [
-            { text: 'Avalanche', link: '/chains/avalanche' },
-            { text: 'Aptos', link: '/chains/aptos' }
-          ]
-        },
-        {
-          text: 'Examples',
-          items: [
-            { text: 'Overview', link: '/examples/' },
-            { text: 'Token Sender', link: '/examples/token-sender' },
-            { text: 'NFT Marketplace', link: '/examples/nft-marketplace' },
-            { text: 'DeFi Farming', link: '/examples/defi-farming' }
-          ]
-        },
-        {
           text: 'API Reference',
           items: [
             { text: 'SmoothSendSDK', link: '/api/' },
-            { text: 'Types', link: '/api/types' },
-            { text: 'Errors', link: '/api/errors' }
+            { text: 'Types', link: '/api/types' }
           ]
         }
       ]

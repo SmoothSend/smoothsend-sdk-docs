@@ -1,280 +1,276 @@
 # Quick Start
 
-Get up and running with SmoothSend SDK in under 5 minutes for both Avalanche and Aptos.
+Get up and running with SmoothSend SDK in minutes. This guide will walk you through creating your first gasless transaction.
 
-## 1. Installation
-
-```bash
-npm install @smoothsend/sdk
-```
-
-## 2. Initialize SDK
+## Step 1: Initialize the SDK
 
 ```typescript
-import { SmoothSendSDK, getChainConfig } from '@smoothsend/sdk';
+import { SmoothSendSDK } from '@smoothsend/sdk';
 
-const sdk = new SmoothSendSDK({
+const smoothSend = new SmoothSendSDK({
   timeout: 30000,
-  retries: 3,
-  useDynamicConfig: true,  // Enable dynamic configuration from relayers
-  configCacheTtl: 300000  // 5 minutes cache TTL
+  retries: 3
 });
-
-// Check what chains are supported
-const supportedChains = SmoothSendSDK.getSupportedChains();
-console.log('Supported chains:', supportedChains); // ['avalanche', 'aptos-testnet']
-
-// Get chain configurations
-const avalancheConfig = getChainConfig('avalanche');
-const aptosConfig = getChainConfig('aptos-testnet');
-console.log('Avalanche config:', avalancheConfig);
-console.log('Aptos config:', aptosConfig);
 ```
 
-## 3. Your First Transfer
+## Step 2: Connect to a Wallet
 
-### Avalanche Example (EVM-based)
+### Using MetaMask (Browser)
 
-```javascript
+```typescript
 import { ethers } from 'ethers';
-import { getTokenDecimals } from '@smoothsend/sdk';
 
-// Connect wallet (MetaMask, etc.)
+// Connect to MetaMask
 const provider = new ethers.BrowserProvider(window.ethereum);
 const signer = await provider.getSigner();
+const userAddress = await signer.getAddress();
+```
 
-// Get proper decimals for USDC
-const usdcDecimals = getTokenDecimals('USDC'); // Returns 6
+### Using a Private Key (Node.js)
 
-// Execute gasless transfer
-const result = await sdk.transfer({
-  from: await signer.getAddress(),
+```typescript
+import { ethers } from 'ethers';
+
+// For testing only - never hardcode private keys in production
+const provider = new ethers.JsonRpcProvider('https://api.avax-test.network/ext/bc/C/rpc');
+const signer = new ethers.Wallet('your-private-key', provider);
+```
+
+## Step 3: Get a Transfer Quote
+
+Before executing a transfer, get a quote to see fees and validate the transaction:
+
+```typescript
+const quote = await smoothSend.getQuote({
+  from: userAddress,
   to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
   token: 'USDC',
-  amount: ethers.parseUnits('10', usdcDecimals).toString(), // 10 USDC
+  amount: '1000000', // 1 USDC (6 decimals)
   chain: 'avalanche'
-}, signer);
+});
 
-console.log('Success! TX:', result.txHash);
-console.log('Explorer:', result.explorerUrl);
+console.log('Transfer amount:', quote.amount);
+console.log('Relayer fee:', quote.relayerFee);
+console.log('Total cost:', quote.total);
+console.log('Fee percentage:', quote.feePercentage);
 ```
 
-### Aptos Example (Move-based)
+## Step 4: Execute the Transfer
 
-```javascript
-// Connect Aptos wallet (Petra, Martian, etc.)
-const connectAptosWallet = async () => {
-  if (!window.aptos) {
-    throw new Error('Aptos wallet not installed');
-  }
-  return await window.aptos.connect();
+```typescript
+const transferRequest = {
+  from: userAddress,
+  to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+  token: 'USDC',
+  amount: '1000000', // 1 USDC (6 decimals)
+  chain: 'avalanche' as const
 };
 
-const wallet = await connectAptosWallet();
-
-// Execute gasless transfer on Aptos
-const result = await sdk.transfer({
-  from: wallet.address,
-  to: '0x8765432109fedcba8765432109fedcba87654321',
-  token: 'USDC',
-  amount: '10000000', // 10 USDC (6 decimals)
-  chain: 'aptos-testnet'
-}, wallet);
-
-console.log('Success! TX:', result.txHash);
-console.log('Explorer:', result.explorerUrl);
-```
-
-## 4. Add Event Monitoring
-
-```javascript
-sdk.addEventListener((event) => {
-  console.log(`[${event.chain}] ${event.type}:`, event.data);
-  
-  switch (event.type) {
-    case 'transfer_initiated':
-      console.log('Preparing transfer...');
-      break;
-    case 'transfer_confirmed':
-      console.log('✅ Transfer completed!');
-      break;
-    case 'transfer_failed':
-      console.log('❌ Transfer failed');
-      break;
-  }
-});
-```
-
-## 5. Advanced Features
-
-### Balance Checking
-
-```javascript
-// Check balances on Avalanche
-const avalancheBalances = await sdk.getBalance('avalanche', address);
-console.log('Avalanche balances:', avalancheBalances);
-
-// Check balances on Aptos
-const aptosBalances = await sdk.getBalance('aptos-testnet', address);
-console.log('Aptos balances:', aptosBalances);
-```
-
-### Address Validation
-
-```javascript
-// Validate EVM address for Avalanche
-const isValidEVM = sdk.validateAddress('0x742d35...', 'avalanche');
-
-// Validate Aptos address
-const isValidAptos = sdk.validateAddress('0x1234567890abcdef...', 'aptos-testnet');
-```
-
-### Transaction Status Check
-
-```javascript
-// Check Avalanche transaction
-const avalancheStatus = await sdk.getTransactionStatus('avalanche', txHash);
-
-// Check Aptos transaction  
-const aptosStatus = await sdk.getTransactionStatus('aptos-testnet', txHash);
-```
-
-## 6. Error Handling
-
-```javascript
 try {
-  const result = await sdk.transfer(request, signer);
-  console.log('Success:', result.txHash);
+  const result = await smoothSend.transfer(transferRequest, signer);
+  
+  console.log('Transfer successful!');
+  console.log('Transaction Hash:', result.txHash);
+  console.log('Block Number:', result.blockNumber);
+  console.log('Explorer URL:', result.explorerUrl);
+  console.log('Gas Used:', result.gasUsed);
 } catch (error) {
-  if (error.code === 'INSUFFICIENT_BALANCE') {
-    alert('You need more tokens for this transfer');
-  } else if (error.code === 'USER_REJECTED') {
-    console.log('User cancelled the transaction');
-  } else if (error.code === 'HEALTH_CHECK_ERROR') {
-    console.log('Service is unavailable');
-  } else {
-    alert(`Transfer failed: ${error.message}`);
-  }
+  console.error('Transfer failed:', error.message);
 }
 ```
 
 ## Complete Example
 
-Here's a complete React component that demonstrates the full flow:
+Here's a complete working example:
 
-```jsx
-import React, { useState } from 'react';
-import { SmoothSendSDK, getTokenDecimals } from '@smoothsend/sdk';
+```typescript
+import { SmoothSendSDK } from '@smoothsend/sdk';
 import { ethers } from 'ethers';
 
-const GaslessTransfer = () => {
+async function sendGaslessTransaction() {
+  // 1. Initialize SDK
+  const smoothSend = new SmoothSendSDK();
+  
+  // 2. Connect wallet
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  const signer = await provider.getSigner();
+  const userAddress = await signer.getAddress();
+  
+  // 3. Define transfer
+const transferRequest = {
+  from: userAddress,
+  to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+  token: 'USDC',
+  amount: '1000000', // 1 USDC
+  chain: 'avalanche' as const // or 'aptos-testnet'
+};
+  
+  try {
+    // 4. Get quote
+    const quote = await smoothSend.getQuote(transferRequest);
+    console.log(`Fee: ${quote.relayerFee} USDC (${quote.feePercentage}%)`);
+    
+    // 5. Execute transfer
+    const result = await smoothSend.transfer(transferRequest, signer);
+    console.log('Success! Tx:', result.txHash);
+    
+    return result;
+  } catch (error) {
+    console.error('Transfer failed:', error);
+    throw error;
+  }
+}
+
+// Call the function
+sendGaslessTransaction();
+```
+
+## React Component Example
+
+Here's how to integrate SmoothSend into a React component:
+
+```tsx
+import React, { useState } from 'react';
+import { SmoothSendSDK } from '@smoothsend/sdk';
+import { ethers } from 'ethers';
+
+function TransferComponent() {
   const [sdk] = useState(new SmoothSendSDK());
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState('');
   const [result, setResult] = useState(null);
-
-  // Listen to events
-  React.useEffect(() => {
-    const handleEvent = (event) => {
-      const messages = {
-        transfer_initiated: 'Preparing transfer...',
-        transfer_signed: 'Transaction signed',
-        transfer_submitted: 'Submitting to blockchain...',
-        transfer_confirmed: '✅ Transfer completed!',
-        transfer_failed: '❌ Transfer failed'
-      };
-      setStatus(messages[event.type] || event.type);
-    };
-
-    sdk.addEventListener(handleEvent);
-    return () => sdk.removeEventListener(handleEvent);
-  }, [sdk]);
 
   const handleTransfer = async () => {
     setLoading(true);
-    setResult(null);
-    
     try {
-      // Connect wallet
       const provider = new ethers.BrowserProvider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
-      
-      // Get proper decimals and format amount
-      const usdcDecimals = getTokenDecimals('USDC');
-      
-      // Execute transfer
+      const userAddress = await signer.getAddress();
+
       const transferResult = await sdk.transfer({
-        from: await signer.getAddress(),
+        from: userAddress,
         to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
         token: 'USDC',
-        amount: ethers.parseUnits('1', usdcDecimals).toString(), // 1 USDC
+        amount: '1000000',
         chain: 'avalanche'
       }, signer);
-      
+
       setResult(transferResult);
     } catch (error) {
       console.error('Transfer failed:', error);
-      setStatus(`❌ Error: ${error.message}`);
-    } finally {
-      setLoading(false);
+      alert(`Transfer failed: ${error.message}`);
     }
+    setLoading(false);
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '500px' }}>
-      <h2>Gasless USDC Transfer</h2>
-      
-      <button 
-        onClick={handleTransfer} 
-        disabled={loading}
-        style={{
-          padding: '12px 24px',
-          fontSize: '16px',
-          backgroundColor: loading ? '#ccc' : '#007bff',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: loading ? 'not-allowed' : 'pointer'
-        }}
-      >
-        {loading ? 'Processing...' : 'Send 1 USDC (Gasless)'}
+    <div>
+      <button onClick={handleTransfer} disabled={loading}>
+        {loading ? 'Sending...' : 'Send 1 USDC'}
       </button>
-
-      {status && (
-        <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-          <strong>Status:</strong> {status}
-        </div>
-      )}
-
+      
       {result && (
-        <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#d4edda', borderRadius: '4px' }}>
-          <h3>✅ Transfer Successful!</h3>
-          <p><strong>Transaction:</strong> {result.txHash}</p>
-          <p><strong>Block:</strong> {result.blockNumber}</p>
-          <p><strong>Fee:</strong> {result.fee}</p>
-          <p><strong>Execution Time:</strong> {result.executionTime}ms</p>
-          <a href={result.explorerUrl} target="_blank" rel="noopener noreferrer">
-            View on Explorer →
-          </a>
+        <div>
+          <p>Transfer successful!</p>
+          <p>Tx: <a href={result.explorerUrl} target="_blank">{result.txHash}</a></p>
         </div>
       )}
     </div>
   );
-};
+}
+```
 
-export default GaslessTransfer;
+## Event Monitoring
+
+Monitor transfer progress with event listeners:
+
+```typescript
+// Add event listener
+smoothSend.addEventListener((event) => {
+  switch (event.type) {
+    case 'transfer_initiated':
+      console.log('Transfer started');
+      break;
+    case 'transfer_signed':
+      console.log('Transaction signed');
+      break;
+    case 'transfer_submitted':
+      console.log('Transaction submitted');
+      break;
+    case 'transfer_confirmed':
+      console.log('Transfer confirmed:', event.data.result);
+      break;
+    case 'transfer_failed':
+      console.log('Transfer failed:', event.data.error);
+      break;
+  }
+});
+
+// Execute transfer with monitoring
+await smoothSend.transfer(transferRequest, signer);
+```
+
+## Supported Tokens
+
+### Avalanche Fuji:
+- **USDC** - USD Coin (6 decimals)
+- **USDT** - Tether USD (6 decimals)
+- **AVAX** - Native Avalanche token (18 decimals)
+
+### Aptos Testnet:
+- **APT** - Native Aptos token (8 decimals)
+- **USDC** - USD Coin (6 decimals)
+
+## Amount Formatting
+
+Always provide amounts in the smallest unit (like wei for ETH, octas for Aptos):
+
+### EVM Chains (Avalanche)
+```typescript
+import { ethers } from 'ethers';
+import { getTokenDecimals } from '@smoothsend/sdk';
+
+// For USDC (6 decimals)
+const usdcAmount = ethers.parseUnits('1.5', 6).toString(); // "1500000"
+
+// Or use the utility function
+const decimals = getTokenDecimals('USDC'); // 6
+const amount = ethers.parseUnits('1.5', decimals).toString();
+```
+
+### Aptos Chain
+```typescript
+// For APT (8 decimals)
+const aptAmount = (1.5 * Math.pow(10, 8)).toString(); // "150000000"
+
+// For USDC on Aptos (6 decimals)
+const usdcAmount = (1.5 * Math.pow(10, 6)).toString(); // "1500000"
+```
+
+## Error Handling
+
+Common errors and how to handle them:
+
+```typescript
+try {
+  const result = await smoothSend.transfer(transferRequest, signer);
+} catch (error) {
+  if (error.code === 'INSUFFICIENT_BALANCE') {
+    console.error('User does not have enough tokens');
+  } else if (error.code === 'INVALID_ADDRESS') {
+    console.error('Invalid recipient address');
+  } else if (error.code === 'NETWORK_ERROR') {
+    console.error('Network connection issue');
+  } else {
+    console.error('Unexpected error:', error.message);
+  }
+}
 ```
 
 ## Next Steps
 
-- 📖 **[Read the full API documentation](./api/)**
-- 🔗 **[Explore Avalanche integration guide](./chains/avalanche)**
-- 💡 **[Check out more examples](./examples/)**
-- 🛠️ **[View integration patterns](./examples/)**
+- [API Reference](./api/) - Explore all available methods
 
 ## Need Help?
 
-- 📧 **Email support**: support@smoothsend.xyz
-- 🐛 **Report issues**: Create an issue on GitHub
-- 📖 **Documentation**: Read the full API reference
+- Join our [Discord Community](https://discord.gg/fF6cdJFWnM)
+- Follow us on [Twitter](https://x.com/smoothsend)

@@ -1,187 +1,116 @@
 # Installation
 
-## NPM Installation
+## Prerequisites
+
+- **Node.js**: Version 16.0.0 or higher
+- **npm** or **yarn** package manager
+- **TypeScript**: Recommended for full type safety
+
+## Install the SDK
+
+### Using npm
 
 ```bash
 npm install @smoothsend/sdk
 ```
 
-## Yarn Installation
+### Using yarn
 
 ```bash
 yarn add @smoothsend/sdk
 ```
 
-## CDN Usage
+### Using pnpm
 
-For browser-only usage without a build system:
-
-```html
-<script type="module">
-  import { SmoothSendSDK } from 'https://unpkg.com/@smoothsend/sdk@latest/dist/index.esm.js';
-  
-  const sdk = new SmoothSendSDK();
-  console.log('SDK loaded!', SmoothSendSDK.getSupportedChains());
-</script>
+```bash
+pnpm add @smoothsend/sdk
 ```
 
-## Requirements
+## Peer Dependencies
 
-- **Node.js**: 16.0.0 or higher
-- **TypeScript**: 5.0+ (for TypeScript projects)
-- **Dependencies**: 
-  - `ethers@^6.8.0` (for Avalanche EVM support - included as dependency)
-  - No additional dependencies needed for Aptos support
-  - `axios@^1.6.0` (HTTP client - included as dependency)
+The SDK requires `ethers` v6 as a peer dependency for EVM chain interactions:
 
-## Framework Integration
-
-### React/Next.js
-
-```javascript
-import { SmoothSendSDK } from '@smoothsend/sdk';
-import { useEffect, useState } from 'react';
-
-function App() {
-  const [sdk, setSdk] = useState(null);
-  
-  useEffect(() => {
-    const smoothSend = new SmoothSendSDK({
-      timeout: 30000,
-      retries: 3
-    });
-    setSdk(smoothSend);
-  }, []);
-  
-  return (
-    <div>
-      {sdk && <TransferComponent sdk={sdk} />}
-    </div>
-  );
-}
+```bash
+npm install ethers@^6.0.0
 ```
 
-### Vue.js
+## TypeScript Support
 
-```javascript
-import { SmoothSendSDK } from '@smoothsend/sdk';
-import { ref, onMounted } from 'vue';
+The SDK is built with TypeScript and includes full type definitions. No additional `@types` packages are needed.
 
-export default {
-  setup() {
-    const sdk = ref(null);
-    
-    onMounted(() => {
-      sdk.value = new SmoothSendSDK();
-    });
-    
-    return { sdk };
+```json
+{
+  "dependencies": {
+    "@smoothsend/sdk": "^1.0.0-beta.10",
+    "ethers": "^6.0.0"
   }
 }
 ```
 
-### Svelte
+## Browser Support
 
-```javascript
-import { SmoothSendSDK } from '@smoothsend/sdk';
-import { onMount } from 'svelte';
+The SDK works in modern browsers and supports:
 
-let sdk;
-
-onMount(() => {
-  sdk = new SmoothSendSDK();
-});
-```
+- **ES Modules**: Use with modern bundlers (Vite, Webpack 5+)
+- **CommonJS**: Compatible with older Node.js environments
+- **Browser**: Works with MetaMask and other wallet providers
 
 ## Verification
 
-After installation, verify the SDK is working:
+Verify your installation by importing the SDK:
 
-```javascript
-import { SmoothSendSDK, VERSION } from '@smoothsend/sdk';
-
-console.log('SmoothSend SDK version:', VERSION);
+```typescript
+import { SmoothSendSDK } from '@smoothsend/sdk';
 
 const sdk = new SmoothSendSDK();
-console.log('Supported chains:', SmoothSendSDK.getSupportedChains()); // ['avalanche', 'aptos-testnet']
-console.log('Avalanche config:', sdk.getChainConfig('avalanche'));
-console.log('Aptos config:', sdk.getChainConfig('aptos-testnet'));
+console.log('SmoothSend SDK installed successfully!');
 ```
 
-## Environment Setup
+## Next Steps
 
-### Development
-
-```javascript
-import { SmoothSendSDK, chainConfigService } from '@smoothsend/sdk';
-
-const sdk = new SmoothSendSDK({
-  timeout: 30000,
-  retries: 3,
-  customChainConfigs: {
-    avalanche: {
-      relayerUrl: 'https://smoothsendevm.onrender.com'
-    }
-  }
-});
-
-// Optional: Fetch dynamic configurations
-const dynamicConfigs = await chainConfigService.getAllChainConfigs();
-console.log('Available chains:', Object.keys(dynamicConfigs)); // Should include avalanche and aptos-testnet
-```
-
-### Production
-
-```javascript
-const sdk = new SmoothSendSDK(); // Uses testnet by default
-```
-
-## Testnet Setup
-
-### Avalanche Fuji Testnet Setup
-
-**Add Network to MetaMask:**
-1. Open MetaMask and click "Add Network"
-2. Enter these details:
-   - **Network Name**: Avalanche Fuji Testnet
-   - **RPC URL**: https://api.avax-test.network/ext/bc/C/rpc
-   - **Chain ID**: 43113
-   - **Currency Symbol**: AVAX
-   - **Block Explorer**: https://testnet.snowtrace.io
-
-**Get Test Tokens:**
-- **AVAX Faucet**: https://faucet.avax.network/
-- **USDC Faucet**: Contact support@smoothsend.xyz for testnet USDC
-
-### Aptos Testnet Setup
-
-**Install Aptos Wallet:**
-- **Petra Wallet**: https://petra.app/ (Chrome extension)
-- **Martian Wallet**: https://martianwallet.xyz/ (Chrome extension)
-
-**Get Test Tokens:**
-- **APT Faucet**: https://aptoslabs.com/testnet-faucet
-- **Aptos Explorer**: https://explorer.aptoslabs.com/?network=testnet
-
-**Network Details:**
-- **Chain ID**: 2
-- **RPC URL**: https://fullnode.testnet.aptoslabs.com/v1
-- **Explorer**: https://explorer.aptoslabs.com/?network=testnet
+- [Quick Start Guide](./quick-start) - Build your first gasless transaction
+- [API Reference](./api/) - Explore all available methods
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Module not found errors:**
-```bash
-npm install --save-dev @types/node
+**1. Module Resolution Errors**
+
+If you encounter module resolution issues, ensure you're using a compatible bundler:
+
+```typescript
+// Correct import
+import { SmoothSendSDK } from '@smoothsend/sdk';
+
+// Incorrect
+import SmoothSendSDK from '@smoothsend/sdk';
 ```
 
-**TypeScript errors:**
+**2. Ethers Version Conflicts**
+
+Ensure you're using ethers v6:
+
+```bash
+npm ls ethers
+```
+
+If you see version conflicts, install the correct version:
+
+```bash
+npm install ethers@^6.0.0
+```
+
+**3. TypeScript Configuration**
+
+For optimal TypeScript support, ensure your `tsconfig.json` includes:
+
 ```json
-// tsconfig.json
 {
   "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM"],
+    "module": "ESNext",
     "moduleResolution": "node",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
@@ -189,66 +118,9 @@ npm install --save-dev @types/node
 }
 ```
 
-**Build errors in bundlers:**
-```javascript
-// webpack.config.js
-module.exports = {
-  resolve: {
-    fallback: {
-      "crypto": require.resolve("crypto-browserify"),
-      "stream": require.resolve("stream-browserify"),
-      "buffer": require.resolve("buffer")
-    }
-  }
-};
-```
+## Support
 
-### Debugging Transfer Issues
+If you encounter installation issues:
 
-**Check SDK status:**
-```javascript
-import { SmoothSendSDK } from '@smoothsend/sdk';
-
-const sdk = new SmoothSendSDK();
-
-// Check if relayers are healthy
-try {
-  const health = await sdk.getHealth();
-  console.log('Service status:', health.status);
-} catch (error) {
-  console.error('Service unavailable:', error);
-}
-
-// Verify chain support
-const chains = await sdk.getSupportedChains();
-console.log('Available chains:', chains);
-```
-
-**Common Transfer Errors:**
-- **`INSUFFICIENT_BALANCE`**: User doesn't have enough tokens
-- **`USER_REJECTED`**: User cancelled transaction in wallet
-- **`NETWORK_ERROR`**: Network connectivity issues
-- **`QUOTE_ERROR`**: Unable to calculate fees (relayer down)
-- **`INVALID_ADDRESS`**: Address format incorrect for chain
-
-**Debug Transfer Flow:**
-```javascript
-try {
-  // Step 1: Get quote first
-  const quote = await sdk.getQuote(request);
-  console.log('Quote successful:', quote);
-  
-  // Step 2: Execute transfer
-  const result = await sdk.transfer(request, signer);
-  console.log('Transfer successful:', result);
-} catch (error) {
-  console.error('Transfer failed at:', error.code, error.message);
-}
-```
-
-### Rate Limits & Production Notes
-
-- **Rate Limits**: 100 requests per minute per IP
-- **Testnet Only**: Current relayers only support testnets
-- **Gas Fees**: Users pay in stablecoins, not native gas
-- **Transaction Limits**: $100 USD equivalent per transfer (testnet)
+1. Join our [Discord Community](https://discord.gg/fF6cdJFWnM)
+2. Contact us on [Twitter](https://x.com/smoothsend)

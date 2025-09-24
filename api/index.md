@@ -1,8 +1,10 @@
 # API Reference
 
+Complete reference for the SmoothSend SDK API.
+
 ## SmoothSendSDK Class
 
-The main SDK class that provides a unified interface for gasless transactions. Currently supports **Avalanche Fuji testnet** and **Aptos testnet** with a unified developer experience.
+The main SDK class that provides all functionality for gasless transactions.
 
 ### Constructor
 
@@ -10,27 +12,33 @@ The main SDK class that provides a unified interface for gasless transactions. C
 new SmoothSendSDK(config?: SmoothSendConfig)
 ```
 
-**Parameters:**
+#### Parameters
+
 - `config` (optional): Configuration object
 
 ```typescript
 interface SmoothSendConfig {
-  timeout?: number;          // Request timeout in ms (default: 30000)
-  retries?: number;          // Max retries for failed requests (default: 3)
+  timeout?: number;           // Request timeout in ms (default: 30000)
+  retries?: number;           // Number of retry attempts (default: 3)
+  useDynamicConfig?: boolean; // Use dynamic config fetching (default: true)
+  configCacheTtl?: number;    // Config cache TTL in ms (default: 300000)
+  relayerUrls?: {
+    evm?: string;             // Custom EVM relayer URL
+    aptos?: string;           // Custom Aptos relayer URL
+  };
   customChainConfigs?: Partial<Record<SupportedChain, Partial<ChainConfig>>>;
-  useDynamicConfig?: boolean; // Enable fetching config from relayers (default: true)
-  configCacheTtl?: number;   // Cache TTL in milliseconds (default: 5 minutes)
 }
 ```
 
-**Example:**
+#### Example
+
 ```typescript
-const sdk = new SmoothSendSDK({
-  timeout: 45000,
-  retries: 5,
+const smoothSend = new SmoothSendSDK({
+  timeout: 30000,
+  retries: 3,
   customChainConfigs: {
     avalanche: {
-      relayerUrl: 'https://custom-avax-relayer.com'
+      relayerUrl: 'https://custom-relayer.com'
     }
   }
 });
@@ -40,166 +48,87 @@ const sdk = new SmoothSendSDK({
 
 ### getQuote()
 
-Get a quote for a gasless transfer including fees and estimates.
+Get a quote for a transfer including fees and gas estimates.
 
 ```typescript
-async getQuote(request: TransferRequest): Promise<TransferQuote>
+getQuote(request: TransferRequest): Promise<TransferQuote>
 ```
 
-**Parameters:**
+#### Parameters
+
 ```typescript
 interface TransferRequest {
   from: string;           // Sender address
-  to: string;             // Recipient address  
-  token: string;          // Token symbol (e.g., 'USDC', 'APT')
-  amount: string;         // Amount in smallest unit (wei for EVM, octas for Aptos)
-  chain: SupportedChain;  // 'avalanche' | 'aptos-testnet'
+  to: string;             // Recipient address
+  token: string;          // Token symbol or contract address
+  amount: string;         // Amount in smallest unit (wei, etc.)
+  chain: SupportedChain;  // Target chain
 }
 ```
 
-**Returns:**
+#### Returns
+
 ```typescript
 interface TransferQuote {
-  amount: string;         // Original transfer amount
+  amount: string;         // Transfer amount
   relayerFee: string;     // Fee charged by relayer
   total: string;          // Total amount (amount + fee)
   feePercentage: number;  // Fee as percentage
-  contractAddress: string; // Contract address for the transfer
-}
-
-// OpenAPI Response Type
-interface TransferQuoteResponse extends SuccessResponse {
-  chainName: string;
-  token: string;
-  amount: string;
-  relayerFee: string;
-  total: string;
-  feePercentage: number;
-  contractAddress: string;
+  contractAddress: string; // Token contract address
 }
 ```
 
-**Example (Avalanche):**
+#### Example
+
 ```typescript
-const quote = await sdk.getQuote({
+const quote = await smoothSend.getQuote({
   from: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d2',
   to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
   token: 'USDC',
-  amount: '1000000', // 1 USDC (6 decimals)
+  amount: '1000000',
   chain: 'avalanche'
 });
 
 console.log('Fee:', quote.relayerFee);
-console.log('Total cost:', quote.total);
-```
-
-**Example (Aptos):**
-```typescript
-const quote = await sdk.getQuote({
-  from: '0x1234567890abcdef1234567890abcdef12345678',
-  to: '0x8765432109fedcba8765432109fedcba87654321',
-  token: 'USDC',
-  amount: '1000000', // 1 USDC (6 decimals)
-  chain: 'aptos-testnet'
-});
-
-console.log('Fee:', quote.relayerFee);
-console.log('Total cost:', quote.total);
-```
-
-### prepareTransfer()
-
-Prepare EIP-712 signature data for a transfer.
-
-```typescript
-async prepareTransfer(request: TransferRequest, quote: TransferQuote): Promise<SignatureData>
-```
-
-**Parameters:**
-- `request`: Transfer request object
-- `quote`: Transfer quote from getQuote()
-
-**Returns:**
-```typescript
-interface SignatureData {
-  domain: any;           // EIP-712 domain
-  types: any;            // EIP-712 types
-  message: any;          // EIP-712 message
-  primaryType: string;   // Primary type for signing
-}
-
-// OpenAPI Response Type
-interface PrepareSignatureResponse extends SuccessResponse {
-  typedData: any;        // EIP-712 typed data
-  messageHash: string;   // Hash of the message to be signed
-  message: string;       // Human-readable message
-}
-```
-
-**Example:**
-```typescript
-const quote = await sdk.getQuote(request);
-const signatureData = await sdk.prepareTransfer(request, quote);
-const signature = await signer.signTypedData(
-  signatureData.domain,
-  signatureData.types,
-  signatureData.message
-);
+console.log('Total:', quote.total);
 ```
 
 ### transfer()
 
-Execute a complete gasless transfer flow: quote → prepare → sign → execute.
+Execute a complete gasless transfer.
 
 ```typescript
-async transfer(request: TransferRequest, signer: any): Promise<TransferResult>
+transfer(request: TransferRequest, signer: any): Promise<TransferResult>
 ```
 
-**Parameters:**
-- `request`: Transfer request object
-- `signer`: Wallet signer (ethers.Signer for Avalanche, Aptos wallet for Aptos)
+#### Parameters
 
-**Returns:**
+- `request`: Transfer request object (same as getQuote)
+- `signer`: Ethers.js signer instance for signing transactions
+
+#### Returns
+
 ```typescript
 interface TransferResult {
-  success: boolean;
+  success: boolean;       // Whether transfer succeeded
   txHash: string;         // Transaction hash
-  blockNumber?: number;   // Block number where tx was mined
-  gasUsed?: string;       // Gas consumed
+  blockNumber?: number;   // Block number (if available)
+  gasUsed?: string;       // Gas used (if available)
   transferId?: string;    // Internal transfer ID
-  explorerUrl?: string;   // Blockchain explorer URL
-  fee?: string;           // Actual relayer fee charged
-  executionTime?: number; // Execution time in milliseconds
-}
-
-// OpenAPI Response Type
-interface RelayTransferResponse extends SuccessResponse {
-  transferId: string;
-  txHash: string;
-  blockNumber: number;
-  gasUsed: string;
-  explorerUrl: string;
-  fee: string;
-  executionTime: number;
+  explorerUrl?: string;   // Block explorer URL
+  fee?: string;          // Actual fee paid
+  executionTime?: number; // Execution time in ms
 }
 ```
 
-**Example (Avalanche):**
+#### Example
+
 ```typescript
-import { ethers } from 'ethers';
-import { getTokenDecimals } from '@smoothsend/sdk';
-
-const provider = new ethers.BrowserProvider(window.ethereum);
-const signer = await provider.getSigner();
-
-// Get proper decimals for the token
-const usdcDecimals = getTokenDecimals('USDC');
-
-const result = await sdk.transfer({
+const result = await smoothSend.transfer({
   from: await signer.getAddress(),
   to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
   token: 'USDC',
-  amount: ethers.parseUnits('10', usdcDecimals).toString(),
+  amount: '1000000',
   chain: 'avalanche'
 }, signer);
 
@@ -209,31 +138,45 @@ console.log('Explorer:', result.explorerUrl);
 
 ### batchTransfer()
 
-Execute multiple transfers in a single transaction (Avalanche only - not supported on Aptos).
+Execute multiple transfers in a single transaction (Avalanche only).
 
 ```typescript
-async batchTransfer(request: BatchTransferRequest, signer: any): Promise<TransferResult[]>
+batchTransfer(request: BatchTransferRequest, signer: any): Promise<TransferResult[]>
 ```
 
-**Parameters:**
+#### Parameters
+
 ```typescript
 interface BatchTransferRequest {
   transfers: TransferRequest[];
-  chain: SupportedChain; // Must be 'avalanche' (not supported on Aptos)
+  chain: SupportedChain;
 }
 ```
 
-**Example:**
+#### Example
+
 ```typescript
-const results = await sdk.batchTransfer({
+const results = await smoothSend.batchTransfer({
   transfers: [
-    { from: address, to: recipient1, token: 'USDC', amount: '1000000', chain: 'avalanche' },
-    { from: address, to: recipient2, token: 'USDC', amount: '2000000', chain: 'avalanche' }
+    {
+      from: userAddress,
+      to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+      token: 'USDC',
+      amount: '1000000',
+      chain: 'avalanche'
+    },
+    {
+      from: userAddress,
+      to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d4',
+      token: 'USDT',
+      amount: '2000000',
+      chain: 'avalanche'
+    }
   ],
   chain: 'avalanche'
 }, signer);
 
-console.log('Batch results:', results.map(r => r.txHash));
+console.log(`Executed ${results.length} transfers`);
 ```
 
 ## Utility Methods
@@ -243,27 +186,36 @@ console.log('Batch results:', results.map(r => r.txHash));
 Get token balances for an address.
 
 ```typescript
-async getBalance(chain: SupportedChain, address: string, token?: string): Promise<TokenBalance[]>
+getBalance(chain: SupportedChain, address: string, token?: string): Promise<TokenBalance[]>
 ```
 
-**Returns:**
+#### Parameters
+
+- `chain`: Target chain
+- `address`: Wallet address to check
+- `token` (optional): Specific token symbol to check
+
+#### Returns
+
 ```typescript
 interface TokenBalance {
-  token: string;      // Token contract address or identifier
-  balance: string;    // Balance in smallest unit
-  decimals: number;   // Token decimals
-  symbol: string;     // Token symbol
-  name?: string;      // Token name
+  token: string;          // Token symbol
+  balance: string;        // Balance in smallest unit
+  decimals: number;       // Token decimals
+  symbol: string;         // Token symbol
+  name: string;          // Token name
+  contractAddress: string; // Token contract address
 }
 ```
 
-**Example:**
+#### Example
+
 ```typescript
 // Get all balances
-const balances = await sdk.getBalance('avalanche', '0x...');
+const balances = await smoothSend.getBalance('avalanche', '0x742d35cc...');
 
 // Get specific token balance
-const usdcBalance = await sdk.getBalance('avalanche', '0x...', 'USDC');
+const usdcBalance = await smoothSend.getBalance('avalanche', '0x742d35cc...', 'USDC');
 ```
 
 ### validateAddress()
@@ -274,201 +226,12 @@ Validate an address format for a specific chain.
 validateAddress(chain: SupportedChain, address: string): boolean
 ```
 
-**Example:**
+#### Example
+
 ```typescript
-const isValid = sdk.validateAddress('avalanche', '0x742d35...');
+const isValid = smoothSend.validateAddress('avalanche', '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d2');
 console.log('Valid address:', isValid); // true
 ```
-
-### validateAmount()
-
-Validate if an amount is valid for a token.
-
-```typescript
-async validateAmount(chain: SupportedChain, amount: string, token: string): Promise<boolean>
-```
-
-### getNonce()
-
-Get the current nonce for an address.
-
-```typescript
-async getNonce(chain: SupportedChain, address: string): Promise<string>
-```
-
-### getTransactionStatus()
-
-Get the status of a transaction.
-
-```typescript
-async getTransactionStatus(chain: SupportedChain, txHash: string): Promise<any>
-```
-
-## OpenAPI-Aligned Endpoint Methods
-
-### getHealth()
-
-Check if the relayer service is running and healthy.
-
-```typescript
-async getHealth(): Promise<HealthResponse>
-```
-
-**Returns:**
-```typescript
-interface HealthResponse extends SuccessResponse {
-  status: string;        // 'healthy'
-  timestamp: string;     // ISO timestamp
-  version: string;       // Service version
-}
-```
-
-**Example:**
-```typescript
-const health = await sdk.getHealth();
-console.log('Service status:', health.status);
-console.log('Version:', health.version);
-```
-
-### getSupportedChainsInfo()
-
-Get supported blockchain networks with their configuration details.
-
-```typescript
-async getSupportedChainsInfo(): Promise<ChainInfo[]>
-```
-
-**Returns:**
-```typescript
-interface ChainInfo {
-  name: string;          // Internal chain name
-  displayName: string;   // Human-readable name
-  chainId: number;       // EVM chain ID
-  explorerUrl: string;   // Block explorer URL
-  tokens: string[];      // Supported token symbols
-}
-```
-
-**Example:**
-```typescript
-const chains = await sdk.getSupportedChainsInfo();
-chains.forEach(chain => {
-  console.log(`${chain.displayName} (${chain.name}): ${chain.tokens.join(', ')}`);
-});
-```
-
-### getSupportedTokensForChain()
-
-Get supported tokens for a specific chain.
-
-```typescript
-async getSupportedTokensForChain(chainName: string): Promise<TokenInfo[]>
-```
-
-**Parameters:**
-- `chainName`: Blockchain network name (e.g., 'avalanche-fuji')
-
-**Returns:**
-```typescript
-interface TokenInfo {
-  symbol: string;        // Token symbol (e.g., 'USDC')
-  address: string;       // Token contract address
-  decimals: number;      // Token decimals
-  name: string;          // Token name
-}
-```
-
-**Example:**
-```typescript
-const tokens = await sdk.getSupportedTokensForChain('avalanche-fuji');
-tokens.forEach(token => {
-  console.log(`${token.name} (${token.symbol}): ${token.address}`);
-});
-```
-
-### estimateGas()
-
-Estimate gas cost for single or batch transfers.
-
-```typescript
-async estimateGas(chainName: string, transfers: any[]): Promise<GasEstimateResponse>
-```
-
-**Parameters:**
-- `chainName`: Blockchain network name
-- `transfers`: Array of transfer data objects
-
-**Returns:**
-```typescript
-interface GasEstimateResponse extends SuccessResponse {
-  chainName: string;     // Chain name
-  gasEstimate: string;   // Estimated gas units
-  gasPrice: string;      // Current gas price in wei
-  estimatedCost: string; // Estimated transaction cost in native token wei
-  transferCount: number; // Number of transfers in the batch
-}
-```
-
-**Example:**
-```typescript
-const estimate = await sdk.estimateGas('avalanche-fuji', [transferData]);
-console.log(`Estimated gas: ${estimate.gasEstimate}`);
-console.log(`Estimated cost: ${estimate.estimatedCost} wei`);
-```
-
-### getDomainSeparator()
-
-Get EIP-712 domain separator for a specific chain.
-
-```typescript
-async getDomainSeparator(chainName: string): Promise<DomainSeparatorResponse>
-```
-
-**Parameters:**
-- `chainName`: Blockchain network name
-
-**Returns:**
-```typescript
-interface DomainSeparatorResponse extends SuccessResponse {
-  chainName: string;     // Chain name
-  domainSeparator: string; // EIP-712 domain separator
-}
-```
-
-**Example:**
-```typescript
-const domain = await sdk.getDomainSeparator('avalanche-fuji');
-console.log('Domain separator:', domain.domainSeparator);
-```
-
-### getTransferStatus()
-
-Check if a transfer has been executed on-chain using its hash.
-
-```typescript
-async getTransferStatus(chainName: string, transferHash: string): Promise<TransferStatusResponse>
-```
-
-**Parameters:**
-- `chainName`: Blockchain network name
-- `transferHash`: Transfer hash to check
-
-**Returns:**
-```typescript
-interface TransferStatusResponse extends SuccessResponse {
-  chainName: string;     // Chain name
-  transferHash: string;  // Transfer hash
-  executed: boolean;     // Whether transfer was executed
-}
-```
-
-**Example:**
-```typescript
-const status = await sdk.getTransferStatus('avalanche-fuji', '0x123...');
-console.log('Transfer executed:', status.executed);
-```
-
-## Chain Management
 
 ### getSupportedChains()
 
@@ -478,26 +241,32 @@ Get list of supported chains.
 getSupportedChains(): SupportedChain[]
 ```
 
-**Returns:** `['avalanche', 'aptos-testnet']`
+#### Example
+
+```typescript
+const chains = smoothSend.getSupportedChains();
+console.log('Supported chains:', chains); // ['avalanche', 'aptos-testnet']
+```
 
 ### getChainConfig()
 
-Get configuration for a specific chain.
+Get static chain configuration.
 
 ```typescript
 getChainConfig(chain: SupportedChain): ChainConfig
 ```
 
-**Returns:**
+#### Returns
+
 ```typescript
 interface ChainConfig {
-  name: string;           // Internal chain name (e.g., 'avalanche-fuji')
+  name: string;           // Chain identifier
   displayName: string;    // Human-readable name
-  chainId: number;        // Chain identifier
+  chainId: number;        // Network chain ID
   rpcUrl: string;         // RPC endpoint
-  relayerUrl: string;     // SmoothSend relayer URL
+  relayerUrl: string;     // Relayer service URL
   explorerUrl: string;    // Block explorer URL
-  tokens: string[];       // Supported token symbols
+  tokens: string[];       // Supported tokens
   nativeCurrency: {
     name: string;
     symbol: string;
@@ -506,12 +275,12 @@ interface ChainConfig {
 }
 ```
 
-### isChainSupported()
-
-Check if a chain is supported.
+#### Example
 
 ```typescript
-isChainSupported(chain: string): chain is SupportedChain
+const config = smoothSend.getChainConfig('avalanche');
+console.log('Chain ID:', config.chainId);
+console.log('Relayer URL:', config.relayerUrl);
 ```
 
 ## Event System
@@ -524,26 +293,21 @@ Listen to transfer events for real-time updates.
 addEventListener(listener: EventListener): void
 ```
 
-**Event Types:**
-```typescript
-type TransferEventType = 
-  | 'transfer_initiated'  // Transfer started
-  | 'transfer_signed'     // Transaction signed
-  | 'transfer_submitted'  // Transaction submitted
-  | 'transfer_confirmed'  // Transfer confirmed
-  | 'transfer_failed';    // Transfer failed
+#### Event Types
 
+```typescript
 interface TransferEvent {
-  type: TransferEventType;
-  data: any;              // Event-specific data
-  timestamp: number;      // Event timestamp
-  chain: SupportedChain;  // Chain where event occurred
+  type: 'transfer_initiated' | 'transfer_signed' | 'transfer_submitted' | 
+        'transfer_confirmed' | 'transfer_failed';
+  data: any;
+  timestamp: number;
 }
 ```
 
-**Example:**
+#### Example
+
 ```typescript
-sdk.addEventListener((event) => {
+smoothSend.addEventListener((event) => {
   switch (event.type) {
     case 'transfer_initiated':
       console.log('Transfer started');
@@ -551,11 +315,14 @@ sdk.addEventListener((event) => {
     case 'transfer_signed':
       console.log('Transaction signed');
       break;
+    case 'transfer_submitted':
+      console.log('Transaction submitted');
+      break;
     case 'transfer_confirmed':
       console.log('Transfer confirmed:', event.data.result);
       break;
     case 'transfer_failed':
-      console.error('Transfer failed:', event.data.error);
+      console.log('Transfer failed:', event.data.error);
       break;
   }
 });
@@ -569,149 +336,116 @@ Remove an event listener.
 removeEventListener(listener: EventListener): void
 ```
 
-## Static Methods
+## Health and Status Methods
 
-### SmoothSendSDK.getSupportedChains()
+### getRelayerHealth()
 
-Get supported chains without instantiating the SDK.
-
-```typescript
-static getSupportedChains(): SupportedChain[]
-```
-
-### SmoothSendSDK.getChainConfig()
-
-Get chain configuration without instantiating the SDK.
+Check relayer service health.
 
 ```typescript
-static getChainConfig(chain: SupportedChain): ChainConfig
+getRelayerHealth(chain: SupportedChain): Promise<HealthResponse>
 ```
 
-### SmoothSendSDK.getAllChainConfigs()
-
-Get all chain configurations.
+#### Returns
 
 ```typescript
-static getAllChainConfigs(): Record<SupportedChain, ChainConfig>
+interface HealthResponse {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  version: string;
+  uptime: number;
+  chainId: number;
+  blockNumber: number;
+}
 ```
 
-## Configuration Utilities
+### getTransferStatus()
+
+Get status of a specific transfer.
+
+```typescript
+getTransferStatus(transferId: string, chain: SupportedChain): Promise<TransferStatusResponse>
+```
+
+#### Returns
+
+```typescript
+interface TransferStatusResponse {
+  transferId: string;
+  status: 'pending' | 'confirmed' | 'failed';
+  txHash?: string;
+  blockNumber?: number;
+  gasUsed?: string;
+  fee?: string;
+  createdAt: string;
+  confirmedAt?: string;
+}
+```
+
+## Static Utility Functions
+
+These functions can be imported directly without instantiating the SDK.
 
 ### getChainConfig()
 
-Get static chain configuration from the SDK.
+```typescript
+import { getChainConfig } from '@smoothsend/sdk';
+
+const config = getChainConfig('avalanche');
+```
+
+### getAllChainConfigs()
 
 ```typescript
-import { getChainConfig, getAllChainConfigs } from '@smoothsend/sdk';
+import { getAllChainConfigs } from '@smoothsend/sdk';
 
-const avalancheConfig = getChainConfig('avalanche');
 const allConfigs = getAllChainConfigs();
 ```
 
 ### getTokenDecimals()
 
-Get token decimals for proper formatting.
-
 ```typescript
 import { getTokenDecimals } from '@smoothsend/sdk';
 
-const usdcDecimals = getTokenDecimals('USDC'); // 6
-const avaxDecimals = getTokenDecimals('AVAX'); // 18
-```
-
-## Dynamic Configuration Service
-
-### chainConfigService
-
-Service for fetching dynamic chain configurations from relayers.
-
-```typescript
-import { chainConfigService } from '@smoothsend/sdk';
-
-// Fetch dynamic configurations from all relayers
-const dynamicConfigs = await chainConfigService.getAllChainConfigs();
-
-// Get specific chain config with fallback
-const avalancheConfig = await chainConfigService.getChainConfig('avalanche');
-
-// Clear cache
-chainConfigService.clearCache();
-```
-
-### ChainConfigService Methods
-
-#### fetchChainConfig()
-
-Fetch chain configurations from a specific relayer.
-
-```typescript
-async fetchChainConfig(relayerUrl: string, chainName?: string): Promise<DynamicChainConfig[]>
-```
-
-#### getChainConfig()
-
-Get configuration for a specific chain with fallback.
-
-```typescript
-async getChainConfig(chain: SupportedChain, fallbackConfig?: ChainConfig): Promise<DynamicChainConfig>
-```
-
-#### getAllChainConfigs()
-
-Get all available chain configurations from all relayers.
-
-```typescript
-async getAllChainConfigs(fallbackConfigs?: Record<SupportedChain, ChainConfig>): Promise<Record<string, DynamicChainConfig>>
+const decimals = getTokenDecimals('USDC'); // 6
 ```
 
 ## Error Handling
 
-The SDK uses OpenAPI-aligned error responses for consistent error handling:
+All methods can throw `SmoothSendError` with specific error codes:
 
 ```typescript
-interface ErrorResponse {
-  success: false;
-  error: string;           // Error message
-  details?: string[];      // Detailed validation errors
-  requestId?: string;      // Request tracking ID
-}
-
-class SmoothSendError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-    public chain?: SupportedChain,
-    public details?: any
-  )
+interface SmoothSendError extends Error {
+  code: string;
+  details?: any;
 }
 ```
 
-**Common Error Codes:**
-- `QUOTE_ERROR`: Failed to get transfer quote
-- `NONCE_ERROR`: Failed to get user nonce
-- `SIGNATURE_PREP_ERROR`: Failed to prepare signature data
-- `SIGNATURE_ERROR`: Transaction signing failed
-- `EXECUTION_ERROR`: Transfer execution failed
-- `INSUFFICIENT_BALANCE`: Insufficient token balance
-- `INVALID_ADDRESS`: Invalid address format
-- `UNSUPPORTED_CHAIN`: Chain not supported
-- `BATCH_NOT_SUPPORTED`: Batch transfers not supported on this chain
-- `TOKEN_INFO_ERROR`: Failed to get token information
-- `STATUS_ERROR`: Failed to get transaction status
-- `CHAINS_ERROR`: Failed to get supported chains
-- `HEALTH_CHECK_ERROR`: Health check failed
-- `GAS_ESTIMATION_ERROR`: Gas estimation failed
-- `DOMAIN_SEPARATOR_ERROR`: Failed to get domain separator
-- `TRANSFER_STATUS_ERROR`: Failed to get transfer status
+### Common Error Codes
 
-**Example:**
+- `INSUFFICIENT_BALANCE` - User doesn't have enough tokens
+- `INVALID_ADDRESS` - Invalid wallet address format
+- `UNSUPPORTED_TOKEN` - Token not supported on chain
+- `NETWORK_ERROR` - Connection or network issue
+- `RELAYER_ERROR` - Relayer service error
+- `SIGNATURE_REJECTED` - User rejected signature
+- `TRANSACTION_FAILED` - Transaction failed on chain
+
+### Example Error Handling
+
 ```typescript
 try {
-  await sdk.transfer(request, signer);
+  const result = await smoothSend.transfer(request, signer);
 } catch (error) {
-  if (error instanceof SmoothSendError) {
-    console.error(`${error.code} on ${error.chain}:`, error.message);
-    console.error('Details:', error.details);
+  if (error.code === 'INSUFFICIENT_BALANCE') {
+    console.error('Not enough tokens');
+  } else if (error.code === 'SIGNATURE_REJECTED') {
+    console.error('User cancelled transaction');
+  } else {
+    console.error('Unexpected error:', error.message);
   }
 }
 ```
+
+## Type Definitions
+
+See [Types Reference](./types) for complete type definitions.
