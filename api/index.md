@@ -130,13 +130,27 @@ transfer(request: TransferRequest, signer: any): Promise<TransferResult>
 - `request`: Transfer request object (same as getQuote)
 - `signer`: Chain-specific signer instance
   - **EVM chains (Avalanche)**: Ethers.js signer instance that supports EIP-712 signatures
-  - **Aptos chains**: Aptos-compatible signer (e.g., from Petra wallet) that supports Ed25519 signatures
+  - **Aptos chains**: Aptos-compatible signer (e.g., from Petra wallet) that supports Ed25519 signatures and provides `publicKey()` method
+
+**Aptos Signature Handling:**
+
+The SDK includes signature validation and verification for Aptos transactions:
+
+- **Signature validation**: All Aptos signatures are validated for proper hex format
+- **Public key requirement**: Aptos transactions require the signer's public key for verification
+- **Error handling**: Detailed error messages for signature and public key validation failures
+- **Backward compatibility**: Supports public key in multiple locations within signed data
 
 **Unified Signature Handling:**
 
 The SDK automatically detects the chain ecosystem and uses the appropriate signing method:
 - **EVM chains**: Uses EIP-712 typed data signing via `signer.signTypedData()`
-- **Aptos chains**: Uses Ed25519 transaction signing via `signer.signTransaction()`
+- **Aptos chains**: Uses Ed25519 transaction signing via `signer.signTransaction()` and requires `signer.publicKey()`
+
+**Aptos Signature Requirements:**
+- Signature must be a valid hex string (with or without '0x' prefix)
+- Public key must be provided and in valid hex format
+- Signer must implement both `signTransaction()` and `publicKey()` methods
 
 No chain-specific logic is required in your application code - the SDK handles all signing differences internally.
 
@@ -176,6 +190,14 @@ console.log('Explorer:', result.explorerUrl);
 - `TRANSACTION_FAILED` - Transaction failed on chain
 - `RELAYER_ERROR` - Relayer service error
 
+**Aptos-Specific Errors:**
+- `APTOS_MISSING_SIGNATURE` - Signature is required for Aptos transactions
+- `APTOS_MISSING_PUBLIC_KEY` - Public key is required for Aptos signature verification
+- `APTOS_INVALID_SIGNATURE_FORMAT` - Invalid signature format (must be hex string)
+- `APTOS_INVALID_PUBLIC_KEY_FORMAT` - Invalid public key format (must be hex string)
+- `APTOS_ADDRESS_MISMATCH` - Public key doesn't match the expected address
+- `APTOS_SIGNATURE_VERIFICATION_FAILED` - Signature verification failed on relayer
+
 ### batchTransfer()
 
 Execute multiple transfers efficiently. Native batch support varies by chain.
@@ -188,11 +210,16 @@ batchTransfer(request: BatchTransferRequest, signer: any): Promise<TransferResul
 - **Avalanche**: Native batch transfers in a single transaction
 - **Aptos**: Sequential execution (fallback behavior)
 
-**Unified Signature Handling:**
+**Signature Handling:**
 
 The SDK uses a unified approach that automatically handles chain-specific signing and transaction formatting:
 - **EVM chains**: EIP-712 typed data signatures
-- **Aptos chains**: Ed25519 transaction signatures
+- **Aptos chains**: Ed25519 transaction signatures with validation
+
+**Aptos Batch Transfer Requirements:**
+- Each transfer requires the same signature validation as single transfers
+- Public key must be provided for all Aptos batch operations
+- Error reporting for each transfer in the batch
 
 The signing process is abstracted away from your application code.
 
@@ -509,6 +536,35 @@ interface SmoothSendError extends Error {
 - `BALANCE_NOT_SUPPORTED` - Balance functionality not available for this chain
 - `UNSUPPORTED_CHAIN_ECOSYSTEM` - Chain ecosystem not supported
 
+### Aptos-Specific Error Codes
+
+Error handling for Aptos transactions includes detailed validation errors:
+
+**Signature Validation Errors:**
+- `APTOS_MISSING_SIGNATURE` - Signature is required for Aptos transactions
+- `APTOS_MISSING_PUBLIC_KEY` - Public key is required for signature verification
+- `APTOS_INVALID_SIGNATURE_FORMAT` - Invalid signature format (must be hex string)
+- `APTOS_INVALID_PUBLIC_KEY_FORMAT` - Invalid public key format (must be hex string)
+- `APTOS_ADDRESS_MISMATCH` - Public key doesn't match the expected address
+- `APTOS_SIGNATURE_VERIFICATION_FAILED` - Signature verification failed
+
+**Transaction Errors:**
+- `APTOS_MISSING_TRANSACTION_DATA` - Missing transaction data from quote
+- `APTOS_INVALID_TRANSACTION_FORMAT` - Invalid transaction format
+
+**Address Validation Errors:**
+- `APTOS_EMPTY_ADDRESS` - Address cannot be empty
+- `APTOS_INVALID_ADDRESS_FORMAT` - Invalid Aptos address format
+
+**General Aptos Errors:**
+- `APTOS_QUOTE_ERROR` - Failed to get quote from Aptos relayer
+- `APTOS_EXECUTE_ERROR` - Failed to execute Aptos transfer
+- `APTOS_BALANCE_ERROR` - Failed to get balance information
+- `APTOS_TOKEN_INFO_ERROR` - Failed to get token information
+- `APTOS_STATUS_ERROR` - Failed to get transaction status
+- `APTOS_MOVE_CALL_ERROR` - Failed to call Move function
+- `APTOS_UNSUPPORTED_TOKEN` - Token not supported on Aptos chain
+
 ### Example Error Handling
 
 ```typescript
@@ -519,8 +575,48 @@ try {
     console.error('Not enough tokens');
   } else if (error.code === 'SIGNATURE_REJECTED') {
     console.error('User cancelled transaction');
+  } else if (error.code === 'APTOS_MISSING_PUBLIC_KEY') {
+    console.error('Aptos signer must provide public key via publicKey() method');
+  } else if (error.code === 'APTOS_INVALID_SIGNATURE_FORMAT') {
+    console.error('Invalid signature format - must be hex string');
+  } else if (error.code === 'APTOS_SIGNATURE_VERIFICATION_FAILED') {
+    console.error('Signature verification failed on relayer');
   } else {
     console.error('Unexpected error:', error.message);
+  }
+}
+```
+
+**Aptos Error Handling:**
+
+For Aptos transactions, the SDK provides detailed validation and error messages:
+
+```typescript
+// Example: Handling Aptos-specific errors
+try {
+  const result = await smoothSend.transfer({
+    from: userAddress,
+    to: recipientAddress,
+    token: 'APT',
+    amount: '1000000',
+    chain: 'aptos-testnet'
+  }, aptosSigner);
+} catch (error) {
+  switch (error.code) {
+    case 'APTOS_MISSING_PUBLIC_KEY':
+      console.error('Signer must implement publicKey() method');
+      break;
+    case 'APTOS_INVALID_PUBLIC_KEY_FORMAT':
+      console.error('Public key must be a valid hex string');
+      break;
+    case 'APTOS_INVALID_SIGNATURE_FORMAT':
+      console.error('Signature must be a valid hex string');
+      break;
+    case 'APTOS_ADDRESS_MISMATCH':
+      console.error('Public key does not match the sender address');
+      break;
+    default:
+      console.error('Aptos transfer failed:', error.message);
   }
 }
 ```
