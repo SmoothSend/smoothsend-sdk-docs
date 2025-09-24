@@ -1,30 +1,30 @@
 # Examples
 
-Complete examples showcasing SmoothSend SDK integration in various scenarios.
+Complete examples showcasing SmoothSend SDK integration for both Avalanche and Aptos chains.
 
 ## Example dApps
 
-### 1. Token Sender
-A simple interface for sending tokens on Avalanche without gas.
+### 1. Multi-Chain Token Sender
+A simple interface for sending tokens on both Avalanche and Aptos without gas.
 
 **Features:**
-- Avalanche support with dynamic configuration
-- Real-time fee calculation
+- Avalanche and Aptos support with dynamic configuration
+- Real-time fee calculation for both chains
 - Transaction status tracking
-- Wallet integration
+- Multi-wallet integration (MetaMask, Petra)
 
 **[View Source](#basic-transfer-component-react)**
 
-### 2. NFT Marketplace
-Gasless NFT purchases with stablecoin payments.
+### 2. Cross-Chain Balance Viewer
+View and manage token balances across supported chains.
 
 **Features:**
-- Buy NFTs without holding native tokens
-- Batch operations (approve + purchase)
-- Multi-token payment options
-- Seller dashboard
+- Balance checking on Avalanche and Aptos
+- Multi-token support (USDC, APT)
+- Chain-specific address validation
+- Real-time balance updates
 
-**[View Source](#integration-patterns)**
+**[View Source](#multi-chain-balance-display-vuejs)**
 
 ## Quick Start Templates
 
@@ -163,12 +163,29 @@ export default TransferComponent;
 ```vue
 <template>
   <div class="balance-display">
-    <h3>Your Balances</h3>
-    <div v-for="chain in chains" :key="chain" class="chain-section">
-      <h4>{{ chain.toUpperCase() }}</h4>
-      <div v-if="loading[chain]">Loading balances...</div>
-      <div v-else>
-        <div v-for="balance in balances[chain]" :key="balance.token" class="balance-item">
+    <h3>Your Multi-Chain Balances</h3>
+    
+    <!-- Avalanche Balances -->
+    <div class="chain-section">
+      <h4>AVALANCHE FUJI</h4>
+      <input v-model="evmAddress" placeholder="Enter EVM address (0x...)" />
+      <button @click="loadAvalancheBalances" :disabled="!evmAddress">Load Avalanche</button>
+      <div v-if="loading.avalanche">Loading Avalanche balances...</div>
+      <div v-else-if="balances.avalanche.length">
+        <div v-for="balance in balances.avalanche" :key="balance.token" class="balance-item">
+          <span>{{ balance.symbol }}: {{ formatBalance(balance) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aptos Balances -->
+    <div class="chain-section">
+      <h4>APTOS TESTNET</h4>
+      <input v-model="aptosAddress" placeholder="Enter Aptos address (0x...)" />
+      <button @click="loadAptosBalances" :disabled="!aptosAddress">Load Aptos</button>
+      <div v-if="loading['aptos-testnet']">Loading Aptos balances...</div>
+      <div v-else-if="balances['aptos-testnet'].length">
+        <div v-for="balance in balances['aptos-testnet']" :key="balance.token" class="balance-item">
           <span>{{ balance.symbol }}: {{ formatBalance(balance) }}</span>
         </div>
       </div>
@@ -180,39 +197,53 @@ export default TransferComponent;
 import { SmoothSendSDK } from '@smoothsend/sdk';
 
 export default {
-  name: 'BalanceDisplay',
-  props: {
-    address: {
-      type: String,
-      required: true
-    }
-  },
+  name: 'MultiChainBalanceDisplay',
   data() {
     return {
       sdk: new SmoothSendSDK(),
-      chains: ['avalanche'],
-      balances: {},
-      loading: {}
+      evmAddress: '',
+      aptosAddress: '',
+      balances: {
+        avalanche: [],
+        'aptos-testnet': []
+      },
+      loading: {
+        avalanche: false,
+        'aptos-testnet': false
+      }
     };
   },
-  async mounted() {
-    await this.loadBalances();
-  },
   methods: {
-    async loadBalances() {
-      for (const chain of this.chains) {
-        this.loading[chain] = true;
-        try {
-          const balances = await this.sdk.getBalance(chain, this.address);
-          this.balances[chain] = balances;
-        } catch (error) {
-          console.error(`Failed to load ${chain} balances:`, error);
-          this.balances[chain] = [];
-        } finally {
-          this.loading[chain] = false;
-        }
+    async loadAvalancheBalances() {
+      if (!this.evmAddress) return;
+      
+      this.loading.avalanche = true;
+      try {
+        const balances = await this.sdk.getBalance('avalanche', this.evmAddress);
+        this.balances.avalanche = balances;
+      } catch (error) {
+        console.error('Failed to load Avalanche balances:', error);
+        this.balances.avalanche = [];
+      } finally {
+        this.loading.avalanche = false;
       }
     },
+    
+    async loadAptosBalances() {
+      if (!this.aptosAddress) return;
+      
+      this.loading['aptos-testnet'] = true;
+      try {
+        const balances = await this.sdk.getBalance('aptos-testnet', this.aptosAddress);
+        this.balances['aptos-testnet'] = balances;
+      } catch (error) {
+        console.error('Failed to load Aptos balances:', error);
+        this.balances['aptos-testnet'] = [];
+      } finally {
+        this.loading['aptos-testnet'] = false;
+      }
+    },
+    
     formatBalance(balance) {
       const value = parseFloat(balance.balance) / Math.pow(10, balance.decimals);
       return value.toFixed(6);

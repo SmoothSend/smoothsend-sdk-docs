@@ -2,7 +2,7 @@
 
 ## SmoothSendSDK Class
 
-The main SDK class that provides a unified interface for gasless transactions. Currently supports Avalanche with architecture ready for additional chains.
+The main SDK class that provides a unified interface for gasless transactions. Currently supports **Avalanche Fuji testnet** and **Aptos testnet** with a unified developer experience.
 
 ### Constructor
 
@@ -51,9 +51,9 @@ async getQuote(request: TransferRequest): Promise<TransferQuote>
 interface TransferRequest {
   from: string;           // Sender address
   to: string;             // Recipient address  
-  token: string;          // Token symbol (e.g., 'USDC', 'AVAX')
-  amount: string;         // Amount in smallest unit (wei for EVM chains)
-  chain: SupportedChain;  // 'avalanche'
+  token: string;          // Token symbol (e.g., 'USDC', 'APT')
+  amount: string;         // Amount in smallest unit (wei for EVM, octas for Aptos)
+  chain: SupportedChain;  // 'avalanche' | 'aptos-testnet'
 }
 ```
 
@@ -79,7 +79,7 @@ interface TransferQuoteResponse extends SuccessResponse {
 }
 ```
 
-**Example:**
+**Example (Avalanche):**
 ```typescript
 const quote = await sdk.getQuote({
   from: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d2',
@@ -87,6 +87,20 @@ const quote = await sdk.getQuote({
   token: 'USDC',
   amount: '1000000', // 1 USDC (6 decimals)
   chain: 'avalanche'
+});
+
+console.log('Fee:', quote.relayerFee);
+console.log('Total cost:', quote.total);
+```
+
+**Example (Aptos):**
+```typescript
+const quote = await sdk.getQuote({
+  from: '0x1234567890abcdef1234567890abcdef12345678',
+  to: '0x8765432109fedcba8765432109fedcba87654321',
+  token: 'USDC',
+  amount: '1000000', // 1 USDC (6 decimals)
+  chain: 'aptos-testnet'
 });
 
 console.log('Fee:', quote.relayerFee);
@@ -143,7 +157,7 @@ async transfer(request: TransferRequest, signer: any): Promise<TransferResult>
 
 **Parameters:**
 - `request`: Transfer request object
-- `signer`: Wallet signer (ethers.Signer for Avalanche)
+- `signer`: Wallet signer (ethers.Signer for Avalanche, Aptos wallet for Aptos)
 
 **Returns:**
 ```typescript
@@ -195,7 +209,7 @@ console.log('Explorer:', result.explorerUrl);
 
 ### batchTransfer()
 
-Execute multiple transfers in a single transaction (Avalanche only).
+Execute multiple transfers in a single transaction (Avalanche only - not supported on Aptos).
 
 ```typescript
 async batchTransfer(request: BatchTransferRequest, signer: any): Promise<TransferResult[]>
@@ -205,7 +219,7 @@ async batchTransfer(request: BatchTransferRequest, signer: any): Promise<Transfe
 ```typescript
 interface BatchTransferRequest {
   transfers: TransferRequest[];
-  chain: SupportedChain; // Must be 'avalanche'
+  chain: SupportedChain; // Must be 'avalanche' (not supported on Aptos)
 }
 ```
 
@@ -214,7 +228,7 @@ interface BatchTransferRequest {
 const results = await sdk.batchTransfer({
   transfers: [
     { from: address, to: recipient1, token: 'USDC', amount: '1000000', chain: 'avalanche' },
-    { from: address, to: recipient2, token: 'USDT', amount: '2000000', chain: 'avalanche' }
+    { from: address, to: recipient2, token: 'USDC', amount: '2000000', chain: 'avalanche' }
   ],
   chain: 'avalanche'
 }, signer);
@@ -464,7 +478,7 @@ Get list of supported chains.
 getSupportedChains(): SupportedChain[]
 ```
 
-**Returns:** `['avalanche']`
+**Returns:** `['avalanche', 'aptos-testnet']`
 
 ### getChainConfig()
 

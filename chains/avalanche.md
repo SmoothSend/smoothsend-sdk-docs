@@ -12,8 +12,9 @@ The Avalanche adapter enables gasless transactions on Avalanche C-Chain using EI
 
 ## Supported Tokens
 
-- **USDC**: USD Coin (primary supported token)
-- Additional tokens available through dynamic configuration
+- **USDC**: USD Coin (6 decimals) - primary supported token
+- **AVAX**: Native Avalanche token (18 decimals) - for reference in calculations
+- Additional tokens may be available through dynamic configuration
 
 ## Setup
 
@@ -22,6 +23,21 @@ The Avalanche adapter enables gasless transactions on Avalanche C-Chain using EI
 ```bash
 npm install ethers @smoothsend/sdk
 ```
+
+### Add Avalanche Testnet to MetaMask
+
+1. Open MetaMask and click "Add Network"
+2. Enter these details:
+   - **Network Name**: Avalanche Fuji Testnet
+   - **RPC URL**: https://api.avax-test.network/ext/bc/C/rpc
+   - **Chain ID**: 43113
+   - **Currency Symbol**: AVAX
+   - **Block Explorer**: https://testnet.snowtrace.io
+
+### Get Testnet Tokens
+
+- **AVAX Faucet**: https://faucet.avax.network/
+- **USDC Testnet**: Contact support@smoothsend.xyz for testnet USDC tokens
 
 ### Basic Configuration
 
@@ -34,11 +50,13 @@ const sdk = new SmoothSendSDK();
 
 // Get chain configuration
 const avalancheConfig = getChainConfig('avalanche');
-console.log('Relayer URL:', avalancheConfig.relayerUrl);
+console.log('Chain ID:', avalancheConfig.chainId); // 43113 (Fuji testnet)
+console.log('Relayer URL:', avalancheConfig.relayerUrl); // https://smoothsendevm.onrender.com
+console.log('Supported tokens:', avalancheConfig.tokens); // ['USDC']
 
-// Optional: Fetch dynamic configurations
-const dynamicConfigs = await chainConfigService.getAllChainConfigs();
-console.log('Available chains:', Object.keys(dynamicConfigs));
+// Check what chains are supported
+const supportedChains = SmoothSendSDK.getSupportedChains();
+console.log('All supported chains:', supportedChains); // ['avalanche', 'aptos-testnet']
 ```
 
 ## Wallet Integration
@@ -150,11 +168,11 @@ await transferUSDC(
 
 ```typescript
 const batchTransfer = async (senderAddress, recipients) => {
-  const transfers = recipients.map(({ address, token, amount }) => ({
+  const transfers = recipients.map(({ address, amount }) => ({
     from: senderAddress,
     to: address,
-    token,
-    amount: ethers.parseUnits(amount, token === 'USDC' ? 6 : 18).toString(),
+    token: 'USDC', // Currently only USDC is supported
+    amount: ethers.parseUnits(amount, 6).toString(), // USDC has 6 decimals
     chain: 'avalanche' as const
   }));
 
@@ -166,16 +184,17 @@ const batchTransfer = async (senderAddress, recipients) => {
   console.log('Batch transfer completed:');
   results.forEach((result, i) => {
     console.log(`Transfer ${i + 1}: ${result.txHash}`);
+    console.log(`Explorer: ${result.explorerUrl}`);
   });
 
   return results;
 };
 
-// Usage
+// Usage - all transfers must use USDC on current relayer
 await batchTransfer('0x...', [
-  { address: '0x...', token: 'USDC', amount: '50' },
-  { address: '0x...', token: 'USDT', amount: '25' },
-  { address: '0x...', token: 'USDC', amount: '75' }
+  { address: '0x...', amount: '50' },  // 50 USDC
+  { address: '0x...', amount: '25' },  // 25 USDC
+  { address: '0x...', amount: '75' }   // 75 USDC
 ]);
 ```
 

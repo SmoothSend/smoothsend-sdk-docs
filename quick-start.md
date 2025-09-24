@@ -1,6 +1,6 @@
 # Quick Start
 
-Get up and running with SmoothSend SDK in under 5 minutes.
+Get up and running with SmoothSend SDK in under 5 minutes for both Avalanche and Aptos.
 
 ## 1. Installation
 
@@ -20,33 +20,31 @@ const sdk = new SmoothSendSDK({
   configCacheTtl: 300000  // 5 minutes cache TTL
 });
 
-// Check service health
-const health = await sdk.getHealth();
-console.log('Service status:', health.status);
+// Check what chains are supported
+const supportedChains = SmoothSendSDK.getSupportedChains();
+console.log('Supported chains:', supportedChains); // ['avalanche', 'aptos-testnet']
 
-// Get supported chains with full info
-const chains = await sdk.getSupportedChainsInfo();
-console.log('Supported chains:', chains);
-
-// Get supported tokens for a chain
-const tokens = await sdk.getSupportedTokensForChain('avalanche-fuji');
-console.log('Supported tokens:', tokens);
+// Get chain configurations
+const avalancheConfig = getChainConfig('avalanche');
+const aptosConfig = getChainConfig('aptos-testnet');
+console.log('Avalanche config:', avalancheConfig);
+console.log('Aptos config:', aptosConfig);
 ```
 
 ## 3. Your First Transfer
 
-### Avalanche Example
+### Avalanche Example (EVM-based)
 
 ```javascript
 import { ethers } from 'ethers';
 import { getTokenDecimals } from '@smoothsend/sdk';
 
-// Connect wallet
+// Connect wallet (MetaMask, etc.)
 const provider = new ethers.BrowserProvider(window.ethereum);
 const signer = await provider.getSigner();
 
 // Get proper decimals for USDC
-const usdcDecimals = getTokenDecimals('USDC');
+const usdcDecimals = getTokenDecimals('USDC'); // Returns 6
 
 // Execute gasless transfer
 const result = await sdk.transfer({
@@ -58,9 +56,32 @@ const result = await sdk.transfer({
 }, signer);
 
 console.log('Success! TX:', result.txHash);
-console.log('Block:', result.blockNumber);
-console.log('Fee:', result.fee);
-console.log('Execution Time:', result.executionTime + 'ms');
+console.log('Explorer:', result.explorerUrl);
+```
+
+### Aptos Example (Move-based)
+
+```javascript
+// Connect Aptos wallet (Petra, Martian, etc.)
+const connectAptosWallet = async () => {
+  if (!window.aptos) {
+    throw new Error('Aptos wallet not installed');
+  }
+  return await window.aptos.connect();
+};
+
+const wallet = await connectAptosWallet();
+
+// Execute gasless transfer on Aptos
+const result = await sdk.transfer({
+  from: wallet.address,
+  to: '0x8765432109fedcba8765432109fedcba87654321',
+  token: 'USDC',
+  amount: '10000000', // 10 USDC (6 decimals)
+  chain: 'aptos-testnet'
+}, wallet);
+
+console.log('Success! TX:', result.txHash);
 console.log('Explorer:', result.explorerUrl);
 ```
 
@@ -72,13 +93,13 @@ sdk.addEventListener((event) => {
   
   switch (event.type) {
     case 'transfer_initiated':
-      showStatus('Preparing transfer...');
+      console.log('Preparing transfer...');
       break;
     case 'transfer_confirmed':
-      showStatus('✅ Transfer completed!');
+      console.log('✅ Transfer completed!');
       break;
     case 'transfer_failed':
-      showStatus('❌ Transfer failed');
+      console.log('❌ Transfer failed');
       break;
   }
 });
@@ -86,29 +107,36 @@ sdk.addEventListener((event) => {
 
 ## 5. Advanced Features
 
-### Gas Estimation
+### Balance Checking
 
 ```javascript
-// Estimate gas cost before executing transfer
-const estimate = await sdk.estimateGas('avalanche-fuji', [transferData]);
-console.log('Estimated gas:', estimate.gasEstimate);
-console.log('Estimated cost:', estimate.estimatedCost);
+// Check balances on Avalanche
+const avalancheBalances = await sdk.getBalance('avalanche', address);
+console.log('Avalanche balances:', avalancheBalances);
+
+// Check balances on Aptos
+const aptosBalances = await sdk.getBalance('aptos-testnet', address);
+console.log('Aptos balances:', aptosBalances);
 ```
 
-### Transfer Status Check
+### Address Validation
 
 ```javascript
-// Check if a transfer has been executed
-const status = await sdk.getTransferStatus('avalanche-fuji', txHash);
-console.log('Transfer executed:', status.executed);
+// Validate EVM address for Avalanche
+const isValidEVM = sdk.validateAddress('0x742d35...', 'avalanche');
+
+// Validate Aptos address
+const isValidAptos = sdk.validateAddress('0x1234567890abcdef...', 'aptos-testnet');
 ```
 
-### Domain Separator
+### Transaction Status Check
 
 ```javascript
-// Get EIP-712 domain separator for signature verification
-const domain = await sdk.getDomainSeparator('avalanche-fuji');
-console.log('Domain separator:', domain.domainSeparator);
+// Check Avalanche transaction
+const avalancheStatus = await sdk.getTransactionStatus('avalanche', txHash);
+
+// Check Aptos transaction  
+const aptosStatus = await sdk.getTransactionStatus('aptos-testnet', txHash);
 ```
 
 ## 6. Error Handling
