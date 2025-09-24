@@ -102,7 +102,7 @@ const transferRequest = {
   to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
   token: 'USDC',
   amount: '1000000', // 1 USDC
-  chain: 'avalanche' as const // or 'aptos-testnet'
+  chain: 'avalanche' as const // EVM chain - see Aptos example below
 };
   
   try {
@@ -273,6 +273,62 @@ try {
 ## Next Steps
 
 - [API Reference](./api/) - Explore all available methods
+
+## Aptos-Specific Implementation
+
+For Aptos chains, the transaction flow requires serialized transactions:
+
+```typescript
+import { SmoothSendSDK } from '@smoothsend/sdk';
+
+async function sendAptosGaslessTransaction() {
+  const smoothSend = new SmoothSendSDK();
+  
+  // Connect to Aptos wallet (e.g., Petra)
+  const aptosWallet = window.aptos;
+  await aptosWallet.connect();
+  const userAddress = await aptosWallet.account();
+  
+  // 1. Get quote
+  const quote = await smoothSend.getQuote({
+    from: userAddress.address,
+    to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+    token: 'USDC',
+    amount: '1000000',
+    chain: 'aptos-testnet'
+  });
+  
+  // 2. Prepare transaction
+  const signatureData = await smoothSend.prepareTransfer({
+    from: userAddress.address,
+    to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+    token: 'USDC',
+    amount: '1000000',
+    chain: 'aptos-testnet'
+  }, quote);
+  
+  // 3. Sign with wallet (must return serialized data)
+  const signedTransaction = await aptosWallet.signTransaction(signatureData.message);
+  
+  // 4. Execute with serialized data
+  const result = await smoothSend.executeTransfer({
+    signature: 'serialized',
+    transferData: {
+      transactionBytes: signedTransaction.transactionBytes,
+      authenticatorBytes: signedTransaction.authenticatorBytes,
+      functionName: 'smoothsend_transfer'
+    }
+  }, 'aptos-testnet');
+  
+  console.log('Success! Tx:', result.txHash);
+  console.log('Gas paid by:', result.gasFeePaidBy); // 'relayer'
+}
+```
+
+**Important for Aptos:**
+- Wallet must support transaction serialization
+- Returns `transactionBytes` and `authenticatorBytes` as number arrays
+- Relayer pays all gas fees (true gasless experience)
 
 ## Need Help?
 
