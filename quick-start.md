@@ -260,6 +260,10 @@ try {
     console.error('Invalid recipient address');
   } else if (error.code === 'NETWORK_ERROR') {
     console.error('Network connection issue');
+  } else if (error.code === 'BALANCE_NOT_SUPPORTED') {
+    console.error('Balance functionality not available for this chain');
+  } else if (error.code === 'SIGNATURE_REJECTED') {
+    console.error('User rejected the transaction signature');
   } else {
     console.error('Unexpected error:', error.message);
   }

@@ -129,10 +129,16 @@ transfer(request: TransferRequest, signer: any): Promise<TransferResult>
 
 - `request`: Transfer request object (same as getQuote)
 - `signer`: Chain-specific signer instance
-  - **Avalanche**: Ethers.js signer instance for EIP-712 signatures
-  - **Aptos**: Aptos-compatible signer (e.g., from Petra wallet) for Ed25519 signatures
+  - **EVM chains (Avalanche)**: Ethers.js signer instance that supports EIP-712 signatures
+  - **Aptos chains**: Aptos-compatible signer (e.g., from Petra wallet) that supports Ed25519 signatures
 
-**Note:** The SDK automatically detects the chain ecosystem and uses the appropriate signing method. No chain-specific logic is required in your application code.
+**Unified Signature Handling:**
+
+The SDK automatically detects the chain ecosystem and uses the appropriate signing method:
+- **EVM chains**: Uses EIP-712 typed data signing via `signer.signTypedData()`
+- **Aptos chains**: Uses Ed25519 transaction signing via `signer.signTransaction()`
+
+No chain-specific logic is required in your application code - the SDK handles all signing differences internally.
 
 #### Returns
 
@@ -182,7 +188,13 @@ batchTransfer(request: BatchTransferRequest, signer: any): Promise<TransferResul
 - **Avalanche**: Native batch transfers in a single transaction
 - **Aptos**: Sequential execution (fallback behavior)
 
-**Note:** The SDK uses a unified approach that automatically handles chain-specific signing and transaction formatting.
+**Unified Signature Handling:**
+
+The SDK uses a unified approach that automatically handles chain-specific signing and transaction formatting:
+- **EVM chains**: EIP-712 typed data signatures
+- **Aptos chains**: Ed25519 transaction signatures
+
+The signing process is abstracted away from your application code.
 
 #### Parameters
 
@@ -224,7 +236,7 @@ console.log(`Executed ${results.length} transfers`);
 
 ### getBalance()
 
-Get token balances for an address.
+Get token balances for an address. **Note**: This method is only available for chains that support balance queries (currently Aptos chains only).
 
 ```typescript
 getBalance(chain: SupportedChain, address: string, token?: string): Promise<TokenBalance[]>
@@ -245,19 +257,25 @@ interface TokenBalance {
   decimals: number;       // Token decimals
   symbol: string;         // Token symbol
   name: string;          // Token name
-  contractAddress: string; // Token contract address
 }
 ```
 
 #### Example
 
 ```typescript
-// Get all balances
-const balances = await smoothSend.getBalance('avalanche', '0x742d35cc...');
+// Get all balances (Aptos chains only)
+const balances = await smoothSend.getBalance('aptos-testnet', '0x742d35cc...');
 
 // Get specific token balance
-const usdcBalance = await smoothSend.getBalance('avalanche', '0x742d35cc...', 'USDC');
+const usdcBalance = await smoothSend.getBalance('aptos-testnet', '0x742d35cc...', 'USDC');
 ```
+
+**Supported Chains:**
+- ✅ Aptos chains (aptos-testnet)
+- ❌ EVM chains (avalanche) - Balance functionality not available
+
+**Error Handling:**
+If you call this method on an unsupported chain, it will throw a `BALANCE_NOT_SUPPORTED` error.
 
 **Supported Tokens by Chain:**
 
@@ -488,6 +506,8 @@ interface SmoothSendError extends Error {
 - `RELAYER_ERROR` - Relayer service error
 - `SIGNATURE_REJECTED` - User rejected signature
 - `TRANSACTION_FAILED` - Transaction failed on chain
+- `BALANCE_NOT_SUPPORTED` - Balance functionality not available for this chain
+- `UNSUPPORTED_CHAIN_ECOSYSTEM` - Chain ecosystem not supported
 
 ### Example Error Handling
 

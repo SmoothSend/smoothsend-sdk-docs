@@ -10,7 +10,9 @@ A powerful multi-chain SDK for seamless gasless transaction integration in your 
 - **Type-Safe**: Full TypeScript support with comprehensive type definitions
 - **Event System**: Real-time transaction status updates
 - **Unified API**: Consistent interface across all supported chains
+- **Unified Signature Handling**: Automatic EIP-712 (EVM) and Ed25519 (Aptos) signature support
 - **Batch Transfers**: Execute multiple transfers in a single transaction (Avalanche)
+- **Improved Error Handling**: Enhanced error responses with specific error codes
 - **Wallet Integration**: Easy integration with popular wallets
 
 ## What is SmoothSend?
@@ -22,7 +24,7 @@ SmoothSend SDK enables developers to integrate gasless transactions into their d
 | Chain | Network | Status | Features |
 |-------|---------|--------|----------|
 | Avalanche | Fuji Testnet | Active | EIP-712 signatures, Batch transfers, Dynamic config |
-| Aptos | Testnet | Active | Ed25519 signatures, Move-based transactions, Dynamic config |
+| Aptos | Testnet | Active | Ed25519 signatures, Move-based transactions, Dynamic config, Balance queries |
 
 ## Quick Example
 
