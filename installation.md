@@ -41,7 +41,7 @@ The SDK is built with TypeScript and includes full type definitions. No addition
 ```json
 {
   "dependencies": {
-    "@smoothsend/sdk": "^1.0.0-beta.12",
+    "@smoothsend/sdk": "^1.0.0-beta.13",
     "ethers": "^6.0.0"
   }
 }
