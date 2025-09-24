@@ -36,6 +36,8 @@ interface SmoothSendConfig {
 const smoothSend = new SmoothSendSDK({
   timeout: 30000,
   retries: 3,
+  useDynamicConfig: true,        // Enable dynamic config (default)
+  configCacheTtl: 300000,        // Cache TTL in ms (5 minutes)
   customChainConfigs: {
     avalanche: {
       relayerUrl: 'https://custom-relayer.com'
@@ -43,6 +45,22 @@ const smoothSend = new SmoothSendSDK({
   }
 });
 ```
+
+**Dynamic Configuration:**
+
+The SDK automatically fetches chain configurations from relayer endpoints when `useDynamicConfig: true` (default). This provides:
+
+- Up-to-date supported tokens
+- Current relayer fees
+- Live chain status
+- Automatic failover to static config
+
+**Configuration Sources:**
+- **EVM chains**: `https://smoothsendevm.onrender.com`  
+- **Aptos chains**: `https://smoothsendrelayerworking.onrender.com/api/v1/relayer`
+
+**Fallback Behavior:**
+If dynamic configuration fails, the SDK automatically falls back to static configuration to ensure reliability.
 
 ## Core Methods
 
@@ -93,6 +111,12 @@ console.log('Fee:', quote.relayerFee);
 console.log('Total:', quote.total);
 ```
 
+**Possible Errors:**
+- `INSUFFICIENT_BALANCE` - User doesn't have enough tokens
+- `UNSUPPORTED_TOKEN` - Token not supported on chain
+- `INVALID_ADDRESS` - Invalid from/to address
+- `NETWORK_ERROR` - Connection issue with relayer
+
 ### transfer()
 
 Execute a complete gasless transfer.
@@ -104,7 +128,9 @@ transfer(request: TransferRequest, signer: any): Promise<TransferResult>
 #### Parameters
 
 - `request`: Transfer request object (same as getQuote)
-- `signer`: Ethers.js signer instance for signing transactions
+- `signer`: Chain-specific signer instance
+  - **Avalanche**: Ethers.js signer instance for EIP-712 signatures
+  - **Aptos**: Aptos-compatible signer (e.g., from Petra wallet) for Ed25519 signatures
 
 #### Returns
 
@@ -136,13 +162,23 @@ console.log('Transaction:', result.txHash);
 console.log('Explorer:', result.explorerUrl);
 ```
 
+**Possible Errors:**
+- `SIGNATURE_REJECTED` - User cancelled transaction
+- `INSUFFICIENT_BALANCE` - Not enough tokens
+- `TRANSACTION_FAILED` - Transaction failed on chain
+- `RELAYER_ERROR` - Relayer service error
+
 ### batchTransfer()
 
-Execute multiple transfers in a single transaction (Avalanche only).
+Execute multiple transfers efficiently. Native batch support varies by chain.
 
 ```typescript
 batchTransfer(request: BatchTransferRequest, signer: any): Promise<TransferResult[]>
 ```
+
+**Chain Support:**
+- **Avalanche**: Native batch transfers in a single transaction
+- **Aptos**: Sequential execution (fallback behavior)
 
 #### Parameters
 
@@ -177,6 +213,31 @@ const results = await smoothSend.batchTransfer({
 }, signer);
 
 console.log(`Executed ${results.length} transfers`);
+```
+
+### executeGaslessWithWallet() (Aptos Only)
+
+Execute a gasless transfer using Aptos wallet integration for enhanced transparency.
+
+```typescript
+executeGaslessWithWallet(request: TransferRequest, signer: any): Promise<TransferResult>
+```
+
+**Aptos-Specific Features:**
+- Users see full transaction details in their wallet
+- Enhanced transparency with wallet confirmation
+- Gas fees paid by relayer
+- Native Aptos transaction signing
+
+#### Example
+
+```typescript
+// Only available for Aptos chains
+if (request.chain === 'aptos-testnet') {
+  const result = await smoothSend.executeGaslessWithWallet(request, aptosSigner);
+  console.log('Gasless wallet transaction:', result.txHash);
+  console.log('Transparency:', result.transparency);
+}
 ```
 
 ## Utility Methods
@@ -218,6 +279,17 @@ const balances = await smoothSend.getBalance('avalanche', '0x742d35cc...');
 const usdcBalance = await smoothSend.getBalance('avalanche', '0x742d35cc...', 'USDC');
 ```
 
+**Supported Tokens by Chain:**
+
+**Avalanche Fuji:**
+- USDC (6 decimals)
+- USDT (6 decimals) 
+- AVAX (18 decimals)
+
+**Aptos Testnet:**
+- APT (8 decimals)
+- USDC (6 decimals)
+
 ### validateAddress()
 
 Validate an address format for a specific chain.
@@ -235,17 +307,24 @@ console.log('Valid address:', isValid); // true
 
 ### getSupportedChains()
 
-Get list of supported chains.
+Get list of supported chains from initialized adapters.
 
 ```typescript
-getSupportedChains(): SupportedChain[]
+getSupportedChains(): Promise<SupportedChain[]>
 ```
+
+**Note:** This method returns chains that are actually initialized and available. For a static list of all potentially supported chains, use `SmoothSendSDK.getSupportedChains()`.
 
 #### Example
 
 ```typescript
-const chains = smoothSend.getSupportedChains();
-console.log('Supported chains:', chains); // ['avalanche', 'aptos-testnet']
+// Instance method - returns initialized chains
+const chains = await smoothSend.getSupportedChains();
+console.log('Available chains:', chains); // ['avalanche', 'aptos-testnet']
+
+// Static method - returns all potential chains
+const allChains = SmoothSendSDK.getSupportedChains();
+console.log('All supported chains:', allChains); // ['avalanche', 'aptos-testnet']
 ```
 
 ### getChainConfig()
