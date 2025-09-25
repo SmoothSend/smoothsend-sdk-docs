@@ -26,12 +26,12 @@ SmoothSend SDK enables developers to integrate gasless transactions into their d
 | `avalanche` | Avalanche Fuji Testnet | Active | EIP-712 signatures, Batch transfers, Dynamic config |
 | `aptos-testnet` | Aptos Testnet | Active | Ed25519 signatures, Move-based transactions, Dynamic config, Balance queries |
 
-### ⚠️ Important: Chain Identifier Usage
+### Chain Identifier Usage
 
-**Use the exact chain identifiers shown above in your code:**
+Use the exact chain identifiers shown above in your code:
 
 ```typescript
-// ✅ Correct - Use these exact identifiers
+// Correct - Use these exact identifiers
 const avalancheRequest = {
   chain: 'avalanche' as const,  // Not 'avalanche-fuji' or 'avalanche-testnet'
   // ... other fields
@@ -42,7 +42,7 @@ const aptosRequest = {
   // ... other fields
 };
 
-// ❌ Incorrect - These will cause "Chain not supported" errors
+// Incorrect - These will cause "Chain not supported" errors
 const wrongRequest = {
   chain: 'aptos',  // Should be 'aptos-testnet'
   // ... other fields
@@ -50,9 +50,9 @@ const wrongRequest = {
 ```
 
 **Common Mistakes:**
-- Using `'aptos'` instead of `'aptos-testnet'` ❌
-- Using `'avalanche-fuji'` instead of `'avalanche'` ❌
-- Using `'aptos-mainnet'` instead of `'aptos-testnet'` ❌
+- Using `'aptos'` instead of `'aptos-testnet'`
+- Using `'avalanche-fuji'` instead of `'avalanche'`
+- Using `'aptos-mainnet'` instead of `'aptos-testnet'`
 
 ## Quick Example
 
@@ -84,26 +84,26 @@ try {
 
 ### Chain Identifiers
 ```typescript
-// ✅ Use these exact identifiers
+// Use these exact identifiers
 'avalanche'     // Avalanche Fuji Testnet
 'aptos-testnet' // Aptos Testnet
 ```
 
 ### Amount Format
 ```typescript
-// ❌ Wrong - Decimal format
+// Wrong - Decimal format
 amount: '0.5'
 
-// ✅ Correct - Smallest token units
+// Correct - Smallest token units
 amount: '500000'  // 0.5 USDC (6 decimals)
 ```
 
 ### Simple Transfer Flow
 ```typescript
-// ✅ Recommended - One method call
+// Recommended - One method call
 const result = await smoothSend.transfer(transferRequest, signer);
 
-// ✅ Advanced - Step by step
+// Advanced - Step by step
 const quote = await smoothSend.getQuote(transferRequest);
 const result = await smoothSend.transfer(transferRequest, signer);
 ```

@@ -358,8 +358,8 @@ const usdcBalance = await smoothSend.getBalance('aptos-testnet', '0x742d35cc...'
 ```
 
 **Supported Chains:**
-- ✅ Aptos chains (aptos-testnet)
-- ❌ EVM chains (avalanche) - Balance functionality not available
+- Aptos chains (aptos-testnet) - Supported
+- EVM chains (avalanche) - Balance functionality not available
 
 **Error Handling:**
 If you call this method on an unsupported chain, it will throw a `BALANCE_NOT_SUPPORTED` error.

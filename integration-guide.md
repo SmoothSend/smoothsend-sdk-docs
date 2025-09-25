@@ -44,14 +44,12 @@ const result = await smoothSend.transfer({
 
 ## Chain Identifiers
 
-### ⚠️ Critical: Use Exact Identifiers
-
-**Supported Chain Identifiers:**
+Supported Chain Identifiers:
 - `'avalanche'` - Avalanche Fuji Testnet
 - `'aptos-testnet'` - Aptos Testnet
 
 ```typescript
-// ✅ CORRECT
+// Correct
 const avalancheRequest = {
   chain: 'avalanche' as const,
   // ... other fields
@@ -62,7 +60,7 @@ const aptosRequest = {
   // ... other fields
 };
 
-// ❌ WRONG - These will cause "Chain not supported" errors
+// Wrong - These will cause "Chain not supported" errors
 const wrongRequests = [
   { chain: 'aptos' },           // Should be 'aptos-testnet'
   { chain: 'avalanche-fuji' },  // Should be 'avalanche'
@@ -97,9 +95,7 @@ const aptosTransfer = {
 
 ## Amount Formatting
 
-### ⚠️ Critical: Use Smallest Token Units
-
-**Amounts must be provided in the smallest token units (like wei for ETH), NOT in decimal format.**
+Amounts must be provided in the smallest token units (like wei for ETH), not in decimal format.
 
 ### Token Decimal Reference
 
@@ -115,10 +111,10 @@ const aptosTransfer = {
 ```typescript
 import { ethers } from 'ethers';
 
-// ❌ WRONG - Decimal format will fail
+// Wrong - Decimal format will fail
 const wrongAmount = '0.5';
 
-// ✅ CORRECT - Convert to smallest units
+// Correct - Convert to smallest units
 const correctAmount = '500000'; // 0.5 USDC
 
 // Helper functions for conversion
@@ -152,7 +148,7 @@ const amount = ethers.parseUnits('1.5', decimals).toString();
 ### 1. Simple Flow (Recommended)
 
 ```typescript
-// ✅ ONE METHOD CALL - Handles everything internally
+// One method call - Handles everything internally
 const result = await smoothSend.transfer(transferRequest, signer);
 ```
 
@@ -221,19 +217,19 @@ const result = await smoothSend.executeTransfer(signedData, transferRequest.chai
 smoothSend.addEventListener((event) => {
   switch (event.type) {
     case 'transfer_initiated':
-      console.log('🔄 Transfer started');
+      console.log('Transfer started');
       break;
     case 'transfer_signed':
-      console.log('✍️ Transaction signed by user');
+      console.log('Transaction signed by user');
       break;
     case 'transfer_submitted':
-      console.log('📤 Transaction submitted to relayer');
+      console.log('Transaction submitted to relayer');
       break;
     case 'transfer_confirmed':
-      console.log('✅ Transfer confirmed:', event.data.result.txHash);
+      console.log('Transfer confirmed:', event.data.result.txHash);
       break;
     case 'transfer_failed':
-      console.log('❌ Transfer failed:', event.data.error);
+      console.log('Transfer failed:', event.data.error);
       break;
   }
 });
@@ -426,10 +422,10 @@ function TransferComponent() {
 
 **Solution:**
 ```typescript
-// ❌ Wrong
+// Wrong
 chain: 'aptos'
 
-// ✅ Correct  
+// Correct  
 chain: 'aptos-testnet'
 ```
 
@@ -439,10 +435,10 @@ chain: 'aptos-testnet'
 
 **Solution:**
 ```typescript
-// ❌ Wrong - Decimal format
+// Wrong - Decimal format
 amount: '0.5'
 
-// ✅ Correct - Smallest units
+// Correct - Smallest units
 amount: '500000'  // 0.5 USDC (6 decimals)
 
 // Helper function
@@ -457,10 +453,10 @@ const amount = ethers.parseUnits('0.5', 6).toString(); // "500000"
 **Solution:** Use the unified `transfer()` method:
 
 ```typescript
-// ✅ SIMPLEST - One method call handles everything
+// Simplest - One method call handles everything
 const result = await smoothSend.transfer(transferRequest, signer);
 
-// ✅ ADVANCED - Step by step for custom control
+// Advanced - Step by step for custom control
 const quote = await smoothSend.getQuote(transferRequest);
 const signatureData = await smoothSend.prepareTransfer(transferRequest, quote);
 // ... sign with wallet ...
@@ -516,7 +512,7 @@ if (userBalance < requiredBalance) {
 6. **Monitor events** - Use event listeners for real-time transaction updates
 7. **Validate addresses** - Use `validateAddress()` before making requests
 
-## Need Help?
+## Support
 
 - [Quick Start Guide](./quick-start.md) - Your first gasless transaction
 - [API Reference](./api/) - Complete API documentation

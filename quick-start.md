@@ -55,15 +55,15 @@ console.log('Total cost:', quote.total);
 console.log('Fee percentage:', quote.feePercentage);
 ```
 
-### ⚠️ Critical: Amount Format Requirements
+### Amount Format Requirements
 
-**Amounts must be provided in the smallest token units (like wei for ETH), NOT in decimal format:**
+Amounts must be provided in the smallest token units (like wei for ETH), not in decimal format:
 
 ```typescript
-// ❌ WRONG - This will fail with "amount fails to match the required pattern: /^\d+$/"
+// Wrong - This will fail with "amount fails to match the required pattern: /^\d+$/"
 const wrongAmount = '0.5';  // Decimal format not allowed
 
-// ✅ CORRECT - Convert to smallest units
+// Correct - Convert to smallest units
 const correctAmount = '500000';  // 0.5 USDC = 500000 units (6 decimals)
 
 // Helper functions for amount conversion:
@@ -116,7 +116,7 @@ Understanding the transaction flow is crucial for proper integration. Here's the
 ### 1. High-Level Flow (Recommended)
 
 ```typescript
-// ✅ SIMPLEST APPROACH - Use the unified transfer() method
+// Simplest approach - Use the unified transfer() method
 const result = await smoothSend.transfer(transferRequest, signer);
 ```
 
@@ -214,19 +214,19 @@ try {
 smoothSend.addEventListener((event) => {
   switch (event.type) {
     case 'transfer_initiated':
-      console.log('🔄 Transfer started');
+      console.log('Transfer started');
       break;
     case 'transfer_signed':
-      console.log('✍️ Transaction signed by user');
+      console.log('Transaction signed by user');
       break;
     case 'transfer_submitted':
-      console.log('📤 Transaction submitted to relayer');
+      console.log('Transaction submitted to relayer');
       break;
     case 'transfer_confirmed':
-      console.log('✅ Transfer confirmed:', event.data.result.txHash);
+      console.log('Transfer confirmed:', event.data.result.txHash);
       break;
     case 'transfer_failed':
-      console.log('❌ Transfer failed:', event.data.error);
+      console.log('Transfer failed:', event.data.error);
       break;
   }
 });
@@ -494,10 +494,10 @@ async function sendAptosGaslessTransaction() {
 
 **Solution:**
 ```typescript
-// ❌ Wrong
+// Wrong
 chain: 'aptos'
 
-// ✅ Correct  
+// Correct  
 chain: 'aptos-testnet'
 ```
 
@@ -511,10 +511,10 @@ chain: 'aptos-testnet'
 
 **Solution:**
 ```typescript
-// ❌ Wrong - Decimal format
+// Wrong - Decimal format
 amount: '0.5'
 
-// ✅ Correct - Smallest units
+// Correct - Smallest units
 amount: '500000'  // 0.5 USDC (6 decimals)
 
 // Helper function
@@ -529,10 +529,10 @@ const amount = ethers.parseUnits('0.5', 6).toString(); // "500000"
 **Solution:** Use the unified `transfer()` method:
 
 ```typescript
-// ✅ SIMPLEST - One method call handles everything
+// Simplest - One method call handles everything
 const result = await smoothSend.transfer(transferRequest, signer);
 
-// ✅ ADVANCED - Step by step for custom control
+// Advanced - Step by step for custom control
 const quote = await smoothSend.getQuote(transferRequest);
 const signatureData = await smoothSend.prepareTransfer(transferRequest, quote);
 // ... sign with wallet ...
@@ -578,7 +578,7 @@ if (userBalance < requiredBalance) {
 }
 ```
 
-## Need Help?
+## Support
 
-- Join our [Discord Community](https://discord.gg/fF6cdJFWnM)
-- Follow us on [Twitter](https://x.com/smoothsend)
+- [Discord Community](https://discord.gg/fF6cdJFWnM)
+- [Twitter](https://x.com/smoothsend)
