@@ -119,11 +119,18 @@ console.log('Total:', quote.total);
 
 ### transfer()
 
-Execute a complete gasless transfer.
+Execute a complete gasless transfer. This is the **recommended method** as it handles the entire transaction flow automatically.
 
 ```typescript
 transfer(request: TransferRequest, signer: any): Promise<TransferResult>
 ```
+
+**Internal Flow:**
+1. Calls `getQuote()` to validate and get fees
+2. Calls `prepareTransfer()` to prepare signature data
+3. Handles wallet signing (EIP-712 for EVM, Ed25519 for Aptos)
+4. Calls `executeTransfer()` to submit to relayer
+5. Returns final transaction result
 
 #### Parameters
 
@@ -189,6 +196,59 @@ console.log('Explorer:', result.explorerUrl);
 - `INSUFFICIENT_BALANCE` - Not enough tokens
 - `TRANSACTION_FAILED` - Transaction failed on chain
 - `RELAYER_ERROR` - Relayer service error
+
+### prepareTransfer()
+
+Prepare signature data for wallet signing. Used internally by `transfer()` but available for advanced use cases.
+
+```typescript
+prepareTransfer(request: TransferRequest, quote: TransferQuote): Promise<SignatureData>
+```
+
+**When to use:**
+- Building custom transaction flows
+- Implementing custom signing logic
+- Debugging signature issues
+
+**Example:**
+```typescript
+const quote = await smoothSend.getQuote(transferRequest);
+const signatureData = await smoothSend.prepareTransfer(transferRequest, quote);
+
+// For EVM chains (Avalanche)
+const signature = await signer.signTypedData(
+  signatureData.domain,
+  signatureData.types,
+  signatureData.message
+);
+
+// For Aptos chains
+const signedTransaction = await signer.signTransaction(signatureData.message);
+```
+
+### executeTransfer()
+
+Execute a pre-signed transfer. Used internally by `transfer()` but available for advanced use cases.
+
+```typescript
+executeTransfer(signedData: SignedTransferData, chain: SupportedChain): Promise<TransferResult>
+```
+
+**When to use:**
+- Custom signature handling
+- Batch processing
+- Integration with custom wallet implementations
+
+**Example:**
+```typescript
+const signedData = {
+  signature: '0x...',
+  transferData: { /* transfer data */ },
+  signatureType: 'EIP712' as const
+};
+
+const result = await smoothSend.executeTransfer(signedData, 'avalanche');
+```
 
 **Aptos-Specific Errors:**
 - `APTOS_MISSING_SIGNATURE` - Signature is required for Aptos transactions
