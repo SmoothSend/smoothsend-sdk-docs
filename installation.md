@@ -8,31 +8,37 @@
 
 ## Install the SDK
 
-### Using npm
-
-```bash
+:::code-group
+```bash [npm]
 npm install @smoothsend/sdk
 ```
 
-### Using yarn
-
-```bash
+```bash [yarn]
 yarn add @smoothsend/sdk
 ```
 
-### Using pnpm
-
-```bash
+```bash [pnpm]
 pnpm add @smoothsend/sdk
 ```
+:::
 
 ## Peer Dependencies
 
 The SDK requires `ethers` v6 as a peer dependency for EVM chain interactions:
 
-```bash
+:::code-group
+```bash [npm]
 npm install ethers@^6.0.0
 ```
+
+```bash [yarn]
+yarn add ethers@^6.0.0
+```
+
+```bash [pnpm]
+pnpm add ethers@^6.0.0
+```
+:::
 
 ## TypeScript Support
 
@@ -59,12 +65,33 @@ The SDK works in modern browsers and supports:
 
 Verify your installation by importing the SDK:
 
-```typescript
+:::code-group
+```typescript [Basic Verification]
 import { SmoothSendSDK } from '@smoothsend/sdk';
 
 const sdk = new SmoothSendSDK();
 console.log('SmoothSend SDK installed successfully!');
 ```
+
+```typescript [With Configuration]
+import { SmoothSendSDK } from '@smoothsend/sdk';
+
+const sdk = new SmoothSendSDK({
+  timeout: 30000,
+  retries: 3
+});
+
+console.log('SmoothSend SDK initialized with custom config!');
+```
+
+```typescript [Check Supported Chains]
+import { SmoothSendSDK } from '@smoothsend/sdk';
+
+const sdk = new SmoothSendSDK();
+const chains = await sdk.getSupportedChains();
+console.log('Supported chains:', chains);
+```
+:::
 
 ## Next Steps
 
@@ -91,21 +118,56 @@ import SmoothSendSDK from '@smoothsend/sdk';
 
 Ensure you're using ethers v6:
 
-```bash
+:::code-group
+```bash [npm]
 npm ls ethers
 ```
 
+```bash [yarn]
+yarn list ethers
+```
+
+```bash [pnpm]
+pnpm list ethers
+```
+:::
+
 If you see version conflicts, install the correct version:
 
-```bash
+:::code-group
+```bash [npm]
 npm install ethers@^6.0.0
 ```
+
+```bash [yarn]
+yarn add ethers@^6.0.0
+```
+
+```bash [pnpm]
+pnpm add ethers@^6.0.0
+```
+:::
 
 **3. TypeScript Configuration**
 
 For optimal TypeScript support, ensure your `tsconfig.json` includes:
 
-```json
+:::code-group
+```json [Node.js Project]
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true
+  }
+}
+```
+
+```json [Browser Project]
 {
   "compilerOptions": {
     "target": "ES2020",
@@ -113,10 +175,27 @@ For optimal TypeScript support, ensure your `tsconfig.json` includes:
     "module": "ESNext",
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "strict": true
   }
 }
 ```
+
+```json [React/Next.js Project]
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "jsx": "react-jsx"
+  }
+}
+```
+:::
 
 ## Support
 

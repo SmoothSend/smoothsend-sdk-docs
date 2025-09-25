@@ -71,8 +71,8 @@ const wrongRequests = [
 
 ### Chain-Specific Examples
 
-#### Avalanche (EVM)
-```typescript
+:::code-group
+```typescript [EVM (Avalanche)]
 const avalancheTransfer = {
   from: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d2',
   to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
@@ -82,8 +82,7 @@ const avalancheTransfer = {
 };
 ```
 
-#### Aptos (Move)
-```typescript
+```typescript [Aptos]
 const aptosTransfer = {
   from: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d2',
   to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
@@ -92,6 +91,7 @@ const aptosTransfer = {
   chain: 'aptos-testnet' as const
 };
 ```
+:::
 
 ## Amount Formatting
 
@@ -161,7 +161,8 @@ const result = await smoothSend.transfer(transferRequest, signer);
 
 ### 2. Advanced Flow (Step-by-Step)
 
-```typescript
+:::code-group
+```typescript [EVM (Avalanche)]
 // Step 1: Get quote and validate
 const quote = await smoothSend.getQuote(transferRequest);
 console.log(`Fee: ${quote.relayerFee} ${transferRequest.token}`);
@@ -169,46 +170,57 @@ console.log(`Fee: ${quote.relayerFee} ${transferRequest.token}`);
 // Step 2: Prepare signature data
 const signatureData = await smoothSend.prepareTransfer(transferRequest, quote);
 
-// Step 3: Sign with wallet (chain-specific)
-let signedData;
-if (transferRequest.chain === 'avalanche') {
-  // EVM signing (EIP-712)
-  const signature = await signer.signTypedData(
-    signatureData.domain,
-    signatureData.types,
-    signatureData.message
-  );
-  signedData = {
-    signature,
-    transferData: {
-      chainName: 'avalanche-fuji',
-      from: transferRequest.from,
-      to: transferRequest.to,
-      tokenSymbol: transferRequest.token,
-      amount: transferRequest.amount,
-      relayerFee: quote.relayerFee,
-      nonce: signatureData.message.nonce,
-      deadline: signatureData.message.deadline,
-    },
-    signatureType: 'EIP712' as const
-  };
-} else if (transferRequest.chain === 'aptos-testnet') {
-  // Aptos signing (Ed25519)
-  const signedTransaction = await signer.signTransaction(signatureData.message);
-  signedData = {
-    signature: 'serialized',
-    transferData: {
-      transactionBytes: signedTransaction.transactionBytes,
-      authenticatorBytes: signedTransaction.authenticatorBytes,
-      functionName: 'smoothsend_transfer'
-    },
-    signatureType: 'Ed25519' as const
-  };
-}
+// Step 3: Sign with wallet (EIP-712)
+const signature = await signer.signTypedData(
+  signatureData.domain,
+  signatureData.types,
+  signatureData.message
+);
+
+const signedData = {
+  signature,
+  transferData: {
+    chainName: 'avalanche-fuji',
+    from: transferRequest.from,
+    to: transferRequest.to,
+    tokenSymbol: transferRequest.token,
+    amount: transferRequest.amount,
+    relayerFee: quote.relayerFee,
+    nonce: signatureData.message.nonce,
+    deadline: signatureData.message.deadline,
+  },
+  signatureType: 'EIP712' as const
+};
 
 // Step 4: Execute the transfer
 const result = await smoothSend.executeTransfer(signedData, transferRequest.chain);
 ```
+
+```typescript [Aptos]
+// Step 1: Get quote and validate
+const quote = await smoothSend.getQuote(transferRequest);
+console.log(`Fee: ${quote.relayerFee} ${transferRequest.token}`);
+
+// Step 2: Prepare signature data
+const signatureData = await smoothSend.prepareTransfer(transferRequest, quote);
+
+// Step 3: Sign with wallet (Ed25519)
+const signedTransaction = await signer.signTransaction(signatureData.message);
+
+const signedData = {
+  signature: 'serialized',
+  transferData: {
+    transactionBytes: signedTransaction.transactionBytes,
+    authenticatorBytes: signedTransaction.authenticatorBytes,
+    functionName: 'smoothsend_transfer'
+  },
+  signatureType: 'Ed25519' as const
+};
+
+// Step 4: Execute the transfer
+const result = await smoothSend.executeTransfer(signedData, transferRequest.chain);
+```
+:::
 
 ### 3. Event Monitoring
 
@@ -306,7 +318,8 @@ if (userBalance < requiredBalance) {
 
 ### 1. Batch Transfers
 
-```typescript
+:::code-group
+```typescript [EVM (Avalanche)]
 // Avalanche supports native batch transfers
 const batchRequest = {
   transfers: [
@@ -330,6 +343,32 @@ const batchRequest = {
 
 const results = await smoothSend.batchTransfer(batchRequest, signer);
 ```
+
+```typescript [Aptos]
+// Aptos uses sequential execution for batch transfers
+const batchRequest = {
+  transfers: [
+    {
+      from: userAddress.address,
+      to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+      token: 'USDC',
+      amount: '1000000',
+      chain: 'aptos-testnet' as const
+    },
+    {
+      from: userAddress.address,
+      to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d4',
+      token: 'APT',
+      amount: '100000000', // 1 APT (8 decimals)
+      chain: 'aptos-testnet' as const
+    }
+  ],
+  chain: 'aptos-testnet' as const
+};
+
+const results = await smoothSend.batchTransfer(batchRequest, signer);
+```
+:::
 
 ### 2. Balance Checking (Aptos Only)
 
@@ -359,9 +398,11 @@ const smoothSend = new SmoothSendSDK({
 
 ### 4. React Integration
 
-```tsx
+:::code-group
+```tsx [EVM (Avalanche)]
 import React, { useState, useEffect } from 'react';
 import { SmoothSendSDK } from '@smoothsend/sdk';
+import { ethers } from 'ethers';
 
 function TransferComponent() {
   const [sdk] = useState(new SmoothSendSDK());
@@ -414,6 +455,62 @@ function TransferComponent() {
 }
 ```
 
+```tsx [Aptos]
+import React, { useState, useEffect } from 'react';
+import { SmoothSendSDK } from '@smoothsend/sdk';
+
+function AptosTransferComponent() {
+  const [sdk] = useState(new SmoothSendSDK());
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleTransfer = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const aptosWallet = window.aptos;
+      await aptosWallet.connect();
+      const userAddress = await aptosWallet.account();
+
+      const transferRequest = {
+        from: userAddress.address,
+        to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+        token: 'USDC',
+        amount: '1000000', // 1 USDC
+        chain: 'aptos-testnet' as const
+      };
+
+      const result = await sdk.transfer(transferRequest, aptosWallet);
+      setResult(result);
+    } catch (error) {
+      setError(error.message);
+    }
+    
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <button onClick={handleTransfer} disabled={loading}>
+        {loading ? 'Sending...' : 'Send 1 USDC'}
+      </button>
+      
+      {error && <div className="error">Error: {error}</div>}
+      
+      {result && (
+        <div>
+          <p>Transfer successful!</p>
+          <p>Tx: <a href={result.explorerUrl} target="_blank">{result.txHash}</a></p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+:::
+
 ## Troubleshooting
 
 ### Issue 1: "Chain 'aptos' is not supported"
@@ -463,16 +560,32 @@ const signatureData = await smoothSend.prepareTransfer(transferRequest, quote);
 const result = await smoothSend.executeTransfer(signedData, transferRequest.chain);
 ```
 
-### Issue 4: Aptos Signature Errors
+### Issue 4: Signature Errors
 
-**Problem:** Aptos transactions require specific signature format.
+**Problem:** Chain-specific signature format requirements.
 
 **Solution:**
-```typescript
-// Ensure your Aptos wallet returns serialized data
+
+:::code-group
+```typescript [EVM (Avalanche)]
+// EVM chains use EIP-712 typed data signing
+const signature = await signer.signTypedData(
+  signatureData.domain,
+  signatureData.types,
+  signatureData.message
+);
+
+const signedData = {
+  signature,
+  transferData: { /* EVM transfer data */ },
+  signatureType: 'EIP712' as const
+};
+```
+
+```typescript [Aptos]
+// Aptos requires serialized transaction data
 const signedTransaction = await aptosWallet.signTransaction(signatureData.message);
 
-// Required fields for Aptos
 const signedData = {
   signature: 'serialized',
   transferData: {
@@ -483,6 +596,7 @@ const signedData = {
   signatureType: 'Ed25519' as const
 };
 ```
+:::
 
 ### Issue 5: Insufficient Balance Errors
 

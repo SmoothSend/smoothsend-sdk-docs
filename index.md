@@ -56,7 +56,8 @@ const wrongRequest = {
 
 ## Quick Example
 
-```typescript
+:::code-group
+```typescript [EVM (Avalanche)]
 import { SmoothSendSDK } from '@smoothsend/sdk';
 
 // Initialize the SDK
@@ -79,6 +80,31 @@ try {
   console.error('Transfer failed:', error.message);
 }
 ```
+
+```typescript [Aptos]
+import { SmoothSendSDK } from '@smoothsend/sdk';
+
+// Initialize the SDK
+const smoothSend = new SmoothSendSDK();
+
+// Create a transfer request
+const transferRequest = {
+  from: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d2',
+  to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+  token: 'USDC',
+  amount: '1000000', // 1 USDC (6 decimals) - always use smallest units!
+  chain: 'aptos-testnet' as const // Use exact chain identifier
+};
+
+// Execute transfer (with wallet signer)
+try {
+  const result = await smoothSend.transfer(transferRequest, walletSigner);
+  console.log('Transfer successful:', result.txHash);
+} catch (error) {
+  console.error('Transfer failed:', error.message);
+}
+```
+:::
 
 ## Quick Reference
 

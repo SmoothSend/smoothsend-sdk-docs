@@ -32,19 +32,33 @@ interface SmoothSendConfig {
 
 #### Example
 
-```typescript
+:::code-group
+```typescript [Basic Configuration]
 const smoothSend = new SmoothSendSDK({
   timeout: 30000,
   retries: 3,
   useDynamicConfig: true,        // Enable dynamic config (default)
   configCacheTtl: 300000,        // Cache TTL in ms (5 minutes)
+});
+```
+
+```typescript [Custom Relayer URLs]
+const smoothSend = new SmoothSendSDK({
+  timeout: 30000,
+  retries: 3,
+  useDynamicConfig: true,
+  configCacheTtl: 300000,
   customChainConfigs: {
     avalanche: {
-      relayerUrl: 'https://custom-relayer.com'
+      relayerUrl: 'https://custom-avalanche-relayer.com'
+    },
+    'aptos-testnet': {
+      relayerUrl: 'https://custom-aptos-relayer.com'
     }
   }
 });
 ```
+:::
 
 **Dynamic Configuration:**
 
@@ -98,7 +112,8 @@ interface TransferQuote {
 
 #### Example
 
-```typescript
+:::code-group
+```typescript [EVM (Avalanche)]
 const quote = await smoothSend.getQuote({
   from: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d2',
   to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
@@ -109,7 +124,23 @@ const quote = await smoothSend.getQuote({
 
 console.log('Fee:', quote.relayerFee);
 console.log('Total:', quote.total);
+console.log('Contract:', quote.contractAddress);
 ```
+
+```typescript [Aptos]
+const quote = await smoothSend.getQuote({
+  from: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d2',
+  to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+  token: 'USDC',
+  amount: '1000000',
+  chain: 'aptos-testnet'
+});
+
+console.log('Fee:', quote.relayerFee);
+console.log('Total:', quote.total);
+console.log('Contract:', quote.contractAddress);
+```
+:::
 
 **Possible Errors:**
 - `INSUFFICIENT_BALANCE` - User doesn't have enough tokens
@@ -178,7 +209,8 @@ interface TransferResult {
 
 #### Example
 
-```typescript
+:::code-group
+```typescript [EVM (Avalanche)]
 const result = await smoothSend.transfer({
   from: await signer.getAddress(),
   to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
@@ -190,6 +222,20 @@ const result = await smoothSend.transfer({
 console.log('Transaction:', result.txHash);
 console.log('Explorer:', result.explorerUrl);
 ```
+
+```typescript [Aptos]
+const result = await smoothSend.transfer({
+  from: await signer.account().address,
+  to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+  token: 'USDC',
+  amount: '1000000',
+  chain: 'aptos-testnet'
+}, signer);
+
+console.log('Transaction:', result.txHash);
+console.log('Explorer:', result.explorerUrl);
+```
+:::
 
 **Possible Errors:**
 - `SIGNATURE_REJECTED` - User cancelled transaction
@@ -211,7 +257,9 @@ prepareTransfer(request: TransferRequest, quote: TransferQuote): Promise<Signatu
 - Debugging signature issues
 
 **Example:**
-```typescript
+
+:::code-group
+```typescript [EVM (Avalanche)]
 const quote = await smoothSend.getQuote(transferRequest);
 const signatureData = await smoothSend.prepareTransfer(transferRequest, quote);
 
@@ -221,10 +269,16 @@ const signature = await signer.signTypedData(
   signatureData.types,
   signatureData.message
 );
+```
+
+```typescript [Aptos]
+const quote = await smoothSend.getQuote(transferRequest);
+const signatureData = await smoothSend.prepareTransfer(transferRequest, quote);
 
 // For Aptos chains
 const signedTransaction = await signer.signTransaction(signatureData.message);
 ```
+:::
 
 ### executeTransfer()
 
@@ -294,7 +348,8 @@ interface BatchTransferRequest {
 
 #### Example
 
-```typescript
+:::code-group
+```typescript [EVM (Avalanche)]
 const results = await smoothSend.batchTransfer({
   transfers: [
     {
@@ -317,6 +372,31 @@ const results = await smoothSend.batchTransfer({
 
 console.log(`Executed ${results.length} transfers`);
 ```
+
+```typescript [Aptos]
+const results = await smoothSend.batchTransfer({
+  transfers: [
+    {
+      from: userAddress.address,
+      to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+      token: 'USDC',
+      amount: '1000000',
+      chain: 'aptos-testnet'
+    },
+    {
+      from: userAddress.address,
+      to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d4',
+      token: 'APT',
+      amount: '100000000', // 1 APT (8 decimals)
+      chain: 'aptos-testnet'
+    }
+  ],
+  chain: 'aptos-testnet'
+}, signer);
+
+console.log(`Executed ${results.length} transfers`);
+```
+:::
 
 
 ## Utility Methods
@@ -349,13 +429,23 @@ interface TokenBalance {
 
 #### Example
 
-```typescript
+:::code-group
+```typescript [Aptos Only]
 // Get all balances (Aptos chains only)
 const balances = await smoothSend.getBalance('aptos-testnet', '0x742d35cc...');
 
 // Get specific token balance
 const usdcBalance = await smoothSend.getBalance('aptos-testnet', '0x742d35cc...', 'USDC');
 ```
+
+```typescript [EVM - Not Supported]
+// Balance functionality not available for EVM chains
+// Use getBalance() only with Aptos chains
+
+// This will throw a BALANCE_NOT_SUPPORTED error:
+// const balances = await smoothSend.getBalance('avalanche', '0x742d35cc...');
+```
+:::
 
 **Supported Chains:**
 - Aptos chains (aptos-testnet) - Supported
@@ -651,7 +741,8 @@ try {
 
 For Aptos transactions, the SDK provides detailed validation and error messages:
 
-```typescript
+:::code-group
+```typescript [Aptos Error Handling]
 // Example: Handling Aptos-specific errors
 try {
   const result = await smoothSend.transfer({
@@ -680,6 +771,34 @@ try {
   }
 }
 ```
+
+```typescript [EVM Error Handling]
+// Example: Handling EVM-specific errors
+try {
+  const result = await smoothSend.transfer({
+    from: userAddress,
+    to: recipientAddress,
+    token: 'USDC',
+    amount: '1000000',
+    chain: 'avalanche'
+  }, evmSigner);
+} catch (error) {
+  switch (error.code) {
+    case 'SIGNATURE_REJECTED':
+      console.error('User rejected the transaction signature');
+      break;
+    case 'INSUFFICIENT_BALANCE':
+      console.error('Not enough tokens for transfer + fees');
+      break;
+    case 'NETWORK_ERROR':
+      console.error('Connection issue with relayer');
+      break;
+    default:
+      console.error('EVM transfer failed:', error.message);
+  }
+}
+```
+:::
 
 ## Type Definitions
 

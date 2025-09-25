@@ -15,32 +15,34 @@ const smoothSend = new SmoothSendSDK({
 
 ## Step 2: Connect to a Wallet
 
-### Using MetaMask (Browser)
-
-```typescript
+:::code-group
+```typescript [EVM (Avalanche)]
 import { ethers } from 'ethers';
 
-// Connect to MetaMask
+// Connect to MetaMask (Browser)
 const provider = new ethers.BrowserProvider(window.ethereum);
 const signer = await provider.getSigner();
 const userAddress = await signer.getAddress();
-```
 
-### Using a Private Key (Node.js)
-
-```typescript
-import { ethers } from 'ethers';
-
-// For testing only - never hardcode private keys in production
+// Or using a Private Key (Node.js - for testing only)
 const provider = new ethers.JsonRpcProvider('https://api.avax-test.network/ext/bc/C/rpc');
 const signer = new ethers.Wallet('your-private-key', provider);
 ```
+
+```typescript [Aptos]
+// Connect to Aptos wallet (e.g., Petra)
+const aptosWallet = window.aptos;
+await aptosWallet.connect();
+const userAddress = await aptosWallet.account();
+```
+:::
 
 ## Step 3: Get a Transfer Quote
 
 Before executing a transfer, get a quote to see fees and validate the transaction:
 
-```typescript
+:::code-group
+```typescript [EVM (Avalanche)]
 const quote = await smoothSend.getQuote({
   from: userAddress,
   to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
@@ -54,6 +56,22 @@ console.log('Relayer fee:', quote.relayerFee);
 console.log('Total cost:', quote.total);
 console.log('Fee percentage:', quote.feePercentage);
 ```
+
+```typescript [Aptos]
+const quote = await smoothSend.getQuote({
+  from: userAddress.address,
+  to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+  token: 'USDC',
+  amount: '1000000', // 1 USDC (6 decimals)
+  chain: 'aptos-testnet'
+});
+
+console.log('Transfer amount:', quote.amount);
+console.log('Relayer fee:', quote.relayerFee);
+console.log('Total cost:', quote.total);
+console.log('Fee percentage:', quote.feePercentage);
+```
+:::
 
 ### Amount Format Requirements
 
@@ -87,7 +105,8 @@ const aptAmount = (1.5 * Math.pow(10, 8)).toString(); // "150000000"
 
 ## Step 4: Execute the Transfer
 
-```typescript
+:::code-group
+```typescript [EVM (Avalanche)]
 const transferRequest = {
   from: userAddress,
   to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
@@ -108,6 +127,29 @@ try {
   console.error('Transfer failed:', error.message);
 }
 ```
+
+```typescript [Aptos]
+const transferRequest = {
+  from: userAddress.address,
+  to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+  token: 'USDC',
+  amount: '1000000', // 1 USDC (6 decimals)
+  chain: 'aptos-testnet' as const
+};
+
+try {
+  const result = await smoothSend.transfer(transferRequest, signer);
+  
+  console.log('Transfer successful!');
+  console.log('Transaction Hash:', result.txHash);
+  console.log('Block Number:', result.blockNumber);
+  console.log('Explorer URL:', result.explorerUrl);
+  console.log('Gas Used:', result.gasUsed);
+} catch (error) {
+  console.error('Transfer failed:', error.message);
+}
+```
+:::
 
 ## Complete Transaction Flow
 
@@ -239,7 +281,8 @@ await smoothSend.transfer(transferRequest, signer);
 
 Here's a complete working example:
 
-```typescript
+:::code-group
+```typescript [EVM (Avalanche)]
 import { SmoothSendSDK } from '@smoothsend/sdk';
 import { ethers } from 'ethers';
 
@@ -253,13 +296,13 @@ async function sendGaslessTransaction() {
   const userAddress = await signer.getAddress();
   
   // 3. Define transfer
-const transferRequest = {
-  from: userAddress,
-  to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
-  token: 'USDC',
-  amount: '1000000', // 1 USDC
-  chain: 'avalanche' as const // EVM chain - see Aptos example below
-};
+  const transferRequest = {
+    from: userAddress,
+    to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+    token: 'USDC',
+    amount: '1000000', // 1 USDC
+    chain: 'avalanche' as const
+  };
   
   try {
     // 4. Get quote
@@ -281,11 +324,54 @@ const transferRequest = {
 sendGaslessTransaction();
 ```
 
+```typescript [Aptos]
+import { SmoothSendSDK } from '@smoothsend/sdk';
+
+async function sendAptosGaslessTransaction() {
+  // 1. Initialize SDK
+  const smoothSend = new SmoothSendSDK();
+  
+  // 2. Connect wallet
+  const aptosWallet = window.aptos;
+  await aptosWallet.connect();
+  const userAddress = await aptosWallet.account();
+  
+  // 3. Define transfer
+  const transferRequest = {
+    from: userAddress.address,
+    to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+    token: 'USDC',
+    amount: '1000000', // 1 USDC
+    chain: 'aptos-testnet' as const
+  };
+  
+  try {
+    // 4. Get quote
+    const quote = await smoothSend.getQuote(transferRequest);
+    console.log(`Fee: ${quote.relayerFee} USDC (${quote.feePercentage}%)`);
+    
+    // 5. Execute transfer
+    const result = await smoothSend.transfer(transferRequest, aptosWallet);
+    console.log('Success! Tx:', result.txHash);
+    
+    return result;
+  } catch (error) {
+    console.error('Transfer failed:', error);
+    throw error;
+  }
+}
+
+// Call the function
+sendAptosGaslessTransaction();
+```
+:::
+
 ## React Component Example
 
 Here's how to integrate SmoothSend into a React component:
 
-```tsx
+:::code-group
+```tsx [EVM (Avalanche)]
 import React, { useState } from 'react';
 import { SmoothSendSDK } from '@smoothsend/sdk';
 import { ethers } from 'ethers';
@@ -335,6 +421,56 @@ function TransferComponent() {
 }
 ```
 
+```tsx [Aptos]
+import React, { useState } from 'react';
+import { SmoothSendSDK } from '@smoothsend/sdk';
+
+function AptosTransferComponent() {
+  const [sdk] = useState(new SmoothSendSDK());
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleTransfer = async () => {
+    setLoading(true);
+    try {
+      const aptosWallet = window.aptos;
+      await aptosWallet.connect();
+      const userAddress = await aptosWallet.account();
+
+      const transferResult = await sdk.transfer({
+        from: userAddress.address,
+        to: '0x742d35cc6634c0532925a3b8d2d2d2d2d2d2d2d3',
+        token: 'USDC',
+        amount: '1000000',
+        chain: 'aptos-testnet'
+      }, aptosWallet);
+
+      setResult(transferResult);
+    } catch (error) {
+      console.error('Transfer failed:', error);
+      alert(`Transfer failed: ${error.message}`);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <button onClick={handleTransfer} disabled={loading}>
+        {loading ? 'Sending...' : 'Send 1 USDC'}
+      </button>
+      
+      {result && (
+        <div>
+          <p>Transfer successful!</p>
+          <p>Tx: <a href={result.explorerUrl} target="_blank">{result.txHash}</a></p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+:::
+
 ## Event Monitoring
 
 Monitor transfer progress with event listeners:
@@ -380,27 +516,35 @@ await smoothSend.transfer(transferRequest, signer);
 
 Always provide amounts in the smallest unit (like wei for ETH, octas for Aptos):
 
-### EVM Chains (Avalanche)
-```typescript
+:::code-group
+```typescript [EVM (Avalanche)]
 import { ethers } from 'ethers';
 import { getTokenDecimals } from '@smoothsend/sdk';
 
 // For USDC (6 decimals)
 const usdcAmount = ethers.parseUnits('1.5', 6).toString(); // "1500000"
 
+// For AVAX (18 decimals)
+const avaxAmount = ethers.parseUnits('0.1', 18).toString(); // "100000000000000000"
+
 // Or use the utility function
 const decimals = getTokenDecimals('USDC'); // 6
 const amount = ethers.parseUnits('1.5', decimals).toString();
 ```
 
-### Aptos Chain
-```typescript
+```typescript [Aptos]
 // For APT (8 decimals)
 const aptAmount = (1.5 * Math.pow(10, 8)).toString(); // "150000000"
 
 // For USDC on Aptos (6 decimals)
 const usdcAmount = (1.5 * Math.pow(10, 6)).toString(); // "1500000"
+
+// Helper function for any token
+function convertToSmallestUnits(amount: string, decimals: number): string {
+  return (parseFloat(amount) * Math.pow(10, decimals)).toString();
+}
 ```
+:::
 
 ## Error Handling
 
